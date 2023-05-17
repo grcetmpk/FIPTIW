@@ -1,0 +1,1875 @@
+
+# D: Treatment assignment indicator
+# W: Treatment confounder (also generate time-var version W(t) for obs time model)
+# Z: Observation times confounder
+# Y: Time-varying outcome
+# t: observation time
+# phi: random effect
+# epsilon: random error, function of time
+
+# Data generation model: Y_i(t)  = (2-t) + beta1D_i + beta2[W_i - E(w_i|D_i)] + 
+#                                     beta3[Z_i - E(Z_i|D_i)] + phi_i + epsilon_i(t)
+#
+# Marginal model: E(Y_i(t) | D_i) = E{(2-t) + beta1D_i + beta2[W_i(t) - E(w_i(t)|D_i)] + beta3(Z_i - E(Z_i|D_i)) | D_i]
+#                                 = (2-t) + beta1D_i + betaE{2[W_i(t) - E(W_i(t)|D_i) | D_i] + beta3E{Z_i - E(Z_i|D_i)|D_i}
+#                                 = (2-t) + beta1D_i 
+#
+# Observation intensity: lambda_i(t) = eta_i*exp(gamma1D_i + gamma2W_i(t) + gamma3Z_i)
+# Treatment assignment: P(D_i = 1) = expit(alpha0 + alpha1W_i) [W not W(t)]
+#
+#
+# tau: maximum follow up time
+# censoring time C can either be informative or noninformative
+# N: number of simulations
+#
+
+
+require(survival)
+require(geepack)
+require(nleqslv)
+require(knitr)
+require(kableExtra)
+require(dplyr)
+require(doParallel)
+
+expit <- function(x){ return(exp(x)/(1+exp(x)))}
+
+
+
+#~~~~~~~~~~~~~ Data Generation ~~~~~~~~~~~~~~~~#
+
+# gendata_FIPTIW <- function(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau, censinform = F, 
+#                            eta1 = NULL, eta2 = NULL, eta3 = NULL, inParallel = F, nclusters = NULL){
+#   
+#   
+#   # n: number of subjects
+#   # tau: maximum follow up
+#   # censinform: set to T to generate censoring times that are informative
+#   # inParallel: if = TRUE uses DOPARALLEL and FOREACH functions to speed up simulations
+#   # nclusters: number of cores to run in parallel (if applicable)
+#   #
+#   # Data generation model: Y_i(t)  = (2-t) + beta1D_i + beta2[W_i - E(w_i|D_i)] + 
+#   #                                     beta3[Z_i - E(Z_i|D_i)] + phi_i + epsilon_i(t)
+#   #
+#   # Marginal model: E(Y_i(t) | D_i) = E{(2-t) + beta1D_i + beta2[W_i - E(w_i|D_i)] + beta3(Z_i - E(Z_i|D_i)) | D_i]
+#   #                                 = (2-t) + beta1D_i + betaE{2[W_i - W(W_i|D_i) | D_i] + beta3E{Z_i - E(Z_i|D_i)|D_i}
+#   #                                 = (2-t) + beta1D_i 
+#   #  
+#   # Observation intensity: lambda_i(t) = eta_i*exp(gamma1D_i + gamma2W_i(t) + gamma3Z_i)
+#   # Treatment assignment: P(D_i = 1) = expit(alpha0 + alpha1W_i) 
+#   # Censoring: C_i ~ Unif(tau/2, tau) unless censinform = T, then C_i gen from 0.1texp(eta1D_i + eta2W_i(t) + eta3Z_i)
+#   # where
+#   #
+#   # D: Treatment assignment indicator
+#   # W: Treatment confounder
+#   # Z: Observation times confounder
+#   # Y: Time-varying outcome
+#   # t: observation time
+#   # phi: random effect
+#   # epsilon: random error, function of time
+#   
+#   
+#   
+#   mu_Z_D0 <- 2
+#   var_Z_D0 <- 1 
+#   mu_Z_D1 <- 0
+#   var_Z_D1 <- 0.5
+#   
+#   var_phi <- 0.25
+#   var_epsilon <- 1
+#   
+#   getObsTimesViaThinning <- function(lambda, tmax){
+#     # Thinning method for generating NHPP observation times
+#     #
+#     # lambda: rate function for the NHPP 
+#     # tmax: maximum follow up time (tau)
+#     
+#     # initialize 
+#     nobs <- 0
+#     m <- 0
+#     t0 <- 0
+#     s0 <- 0
+#     lambdabar <- lambda(tmax) #supremum, intensity is bounded by this HPP
+#     
+#     times <- c(t0)
+#     s <- s0
+#     
+#     i = m + 1 # R starts at 1 not 0, minor adjustment
+#     
+#     while(s < tmax){
+#       u <- runif(1)
+#       w <- -log(u)/lambdabar # makes w ~ exp(lambdabar)
+#       s <-  s + w # s_m+1 = s + w
+#       D <- runif(1)
+#       
+#       if(D <= lambda(s)/lambdabar){
+#         times <- c(times, s)
+#         nobs <- nobs + 1
+#       }
+#       
+#       i <- i + 1
+#       m <- m + 1
+#     }
+#     
+#     times <- times[-1]
+#     
+#     if(times[nobs] <= tmax){
+#       return(times)
+#     } else{
+#       return(times[-nobs])
+#     }
+#   }
+#   
+#   
+#   
+#   # generate subjects one by one and then combine
+#   if(inParallel == T){
+#     
+#     simdatafull <- foreach(i = 1:n, .combine = rbind, .export = "expit") %do% {
+#       
+#       ## Generate Covariates
+#       id <- i
+#       
+#       # generate treatment confounder w ~ N(0,1)
+#       W <- runif(1, 0, 1)
+#       
+#       # generate treatment assignment
+#       prD <- expit(alpha0 + alpha1*W)
+#       D <- rbinom(1, 1, prD)
+#       
+#       # generate observation times confounder Z ~ N( mu_Z_D0, var_Z_D0) if D = 0 and 
+#       # N( mu_Z_D1, var_Z_D1) if D = 1
+#       
+#       Z <- ifelse(D == 0, rnorm(1, mu_Z_D0, sqrt(var_Z_D0)), rnorm(1, mu_Z_D1, sqrt(var_Z_D1)))
+#       
+#       
+#       # generate random effect
+#       phi <- rnorm(1, 0, var_phi)
+#       
+#       
+#       ## Generate Observation Times
+#       
+#       # simulate censoring time
+#       if(censinform == T){
+#         U <- runif(1, 0, 1)
+#         censortime <- sqrt(2/0.1*(-log(U)*exp(eta1*D+eta2*W+eta3*Z)))
+#       }else{
+#         censortime <- runif(1, tau/2, tau)
+#       }
+#       
+#       
+#       
+#       # calculate eta
+#       eta <- rgamma(1, shape = 100, scale = 0.01) #eta is for random effect with mean 1 and sd 0.1 
+#       #(obs times within subject correlated if sd !0)
+#       
+#       
+#       lambdafun <- function(t) eta*sqrt(t)/2*exp(gamma1*D + gamma2*W*log(t) + gamma3*Z)
+#       
+#       # generate observation times via thinning
+#       obstimes <- getObsTimesViaThinning(lambdafun, tau)
+#       obstimes <- round(obstimes,4)
+#       
+#       if(length(obstimes) > 0){
+#         
+#         
+#         # calculate the number of events for individual i
+#         nevents <- length(obstimes)
+#         
+#         simdata <- data.frame(cbind(rep(id, nevents), obstimes, rep(D, nevents), 
+#                                     rep(W, nevents), rep(Z, nevents), rep(censortime, nevents)))
+#         colnames(simdata) <- c("id", "time", "D", "W", "Z", "censortime")
+#         
+#         
+#         
+#         ## Generate outcome
+#         # need conditional expectation and variance of Z | X
+#         
+#         simdata$cexp_W_D <- 0.5*log(simdata$time) #generated from N(0,1) independently from D
+#         simdata$cexp_Z_D <- ifelse(simdata$D == 0, mu_Z_D0, mu_Z_D1)
+#         
+#         
+#         simdata$y <- (2 - simdata$time) + beta1*simdata$D + beta2*(simdata$W*log(simdata$time) - simdata$cexp_W_D) +
+#           beta3*(simdata$Z - simdata$cexp_Z_D) + 
+#           rep(phi, dim(simdata)[1]) + rnorm(dim(simdata)[1], 0, sqrt(var_epsilon))
+#         
+#         
+#         #remove duplicated times
+#         #if subject has two of the same times, remove one of them.
+#         is.dup <- duplicated(simdata[, c(1,2)])#find which are duplicates (by ID and time)
+#         if(sum(is.dup > 0)){
+#           simdata <- simdata[!is.dup,] #remove them
+#         }
+#         
+#         #make sure observation times >0
+#         simdata <- simdata[simdata$time>0, ]
+#         
+#         # filter censored observations
+#         censored <- which(simdata$time > censortime)
+#         
+#         if(length(censored) > 0){
+#           # remove censored observations
+#           simdata <- simdata[-censored,]
+#         }
+#         
+#         simdata
+#         
+#       }
+#       
+#     }
+#     
+#     simdata <- simdatafull
+#     colnames(simdata) <- c("id", "time", "D", "W", "Z", "censortime", "cexp_W_D", "cexp_Z_D",  "y")
+#     
+#   } else {
+#     
+#     # generate subjects one by one and then combine
+#     id = 1
+#     simdatafull <- data.frame(matrix(NA, ncol = 9))
+#     colnames(simdatafull) <- c("id", "time", "D", "W", "Z", "censortime", "cexp_W_D", "cexp_Z_D",  "y")
+#     
+#     while(id <= n){
+#       
+#       ## Generate Covariates
+#       
+#       # generate treatment confounder w ~ N(0,1)
+#       W <- runif(1, 0, 1)
+#       
+#       # generate treatment assignment
+#       prD <- expit(alpha0 + alpha1*W)
+#       D <- rbinom(1, 1, prD)
+#       
+#       # generate observation times confounder Z ~ N( mu_Z_D0, var_Z_D0) if D = 0 and 
+#       # N( mu_Z_D1, var_Z_D1) if D = 1
+#       
+#       Z <- ifelse(D == 0, rnorm(1, mu_Z_D0, sqrt(var_Z_D0)), rnorm(1, mu_Z_D1, sqrt(var_Z_D1)))
+#       
+#       
+#       # generate random effect
+#       phi <- rnorm(1, 0, var_phi)
+#       
+#       
+#       ## Generate Observation Times
+#       
+#       # simulate censoring time
+#       if(censinform == T){
+#         U <- runif(1, 0,1)
+#         censortime <- sqrt(2/0.1*(-log(U)*exp(eta1*D+eta2*W+eta3*Z)))
+#       }else{
+#         censortime <- runif(1, tau/2, tau)
+#       }
+#       
+#       
+#       
+#       # calculate eta
+#       eta <- rgamma(1, shape = 100, scale = 0.01) #eta is for random effect with mean 1 and sd 0.1 
+#       #(obs times within subject correlated if sd !0)
+#       
+#       
+#       lambdafun <- function(t) eta*sqrt(t)/2*exp(gamma1*D + gamma2*W*log(t) + gamma3*Z)
+#       
+#       # generate observation times via thinning
+#       obstimes <- getObsTimesViaThinning(lambdafun, tau)
+#       obstimes <- round(obstimes,4)
+#       
+#       if(length(obstimes) > 0){
+#         
+#         
+#         # calculate the number of events for individual i
+#         nevents <- length(obstimes)
+#         
+#         simdata <- data.frame(cbind(rep(id, nevents), obstimes, rep(D, nevents), 
+#                                     rep(W, nevents), rep(Z, nevents), rep(censortime, nevents)))
+#         colnames(simdata) <- c("id", "time", "D", "W", "Z", "censortime")
+#         
+#         
+#         
+#         ## Generate outcome
+#         # need conditional expectation and variance of Z | X
+#         
+#         simdata$cexp_W_D <- 0.5*log(simdata$time) #generated from N(0,1) independently from D
+#         simdata$cexp_Z_D <- ifelse(simdata$D == 0, mu_Z_D0, mu_Z_D1)
+#         
+#         
+#         simdata$y <- (2 - simdata$time) + beta1*simdata$D + beta2*(simdata$W*log(simdata$time) - simdata$cexp_W_D) +
+#           beta3*(simdata$Z - simdata$cexp_Z_D) + 
+#           rep(phi, dim(simdata)[1]) + rnorm(dim(simdata)[1], 0, sqrt(var_epsilon))
+#         
+#         
+#         #remove duplicated times
+#         #if subject has two of the same times, remove one of them.
+#         is.dup <- duplicated(simdata[, c(1,2)])#find which are duplicates (by ID and time)
+#         if(sum(is.dup > 0)){
+#           simdata <- simdata[!is.dup,] #remove them
+#         }
+#         
+#         #make sure observation times >0
+#         simdata <- simdata[simdata$time>0, ]
+#         
+#         # filter censored observations
+#         censored <- which(simdata$time > censortime)
+#         
+#         if(length(censored) > 0){
+#           # remove censored observations
+#           simdata <- simdata[-censored,]
+#         }
+#         
+#         simdatafull <- rbind(simdatafull, simdata)
+#         
+#       }
+#       
+#       
+#       
+#       id = id + 1
+#       
+#     }
+#     
+#     simdata <- simdatafull[-1,] #remove empty first row
+#     
+#   }
+#   
+#   
+#   
+#   # order dataset by ID then time
+#   simdata <- simdata[with(simdata, order(id, time)), ]
+#   
+#   
+#   #include a variable counting observation number, to be used for lagging time for Surv function
+#   simdata$obsnumber <- with(simdata, ave(id, id, FUN = seq_along))
+#   
+#   # #create lagged time variable
+#   simdata$time.lag <- simdata$time[c(nrow(simdata),1:(nrow(simdata)-1))]
+#   simdata$time.lag[simdata$obsnumber == 1] <- 0
+#   
+#   simdata$event <- 1
+#   
+#   
+#   #check the generated data
+#   numevents <- summary(tapply(simdata$event, simdata$id, sum)) 
+#   
+#   
+#   #also get data for individuals at baseline (all same here)
+#   baselinedata <- simdata[simdata$obsnumber == 1, ]
+#   newn <- dim(baselinedata)[1] #number of people after censoring etc
+#   
+#   out <- list(simdata, numevents, baselinedata, newn)
+#   names(out) <- c("simdata", "numevents", "baselinedata", "newn")
+#   
+#   return(out) 
+#   
+# }
+# 
+
+gendata_FIPTIW <- function(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau, censinform = F, 
+                           eta1 = NULL, eta2 = NULL, eta3 = NULL){
+
+  # n: number of subjects
+  # tau: maximum follow up
+  # censinform: set to T to generate censoring times that are informative
+  #
+  # Data generation model: Y_i(t)  = (2-t) + beta1D_i + beta2[W_i - E(w_i|D_i)] + 
+  #                                     beta3[Z_i - E(Z_i|D_i)] + phi_i + epsilon_i(t)
+  #
+  # Marginal model: E(Y_i(t) | D_i) = E{(2-t) + beta1D_i + beta2[W_i - E(w_i|D_i)] + beta3(Z_i - E(Z_i|D_i)) | D_i]
+  #                                 = (2-t) + beta1D_i + betaE{2[W_i - W(W_i|D_i) | D_i] + beta3E{Z_i - E(Z_i|D_i)|D_i}
+  #                                 = (2-t) + beta1D_i 
+  #  
+  # Observation intensity: lambda_i(t) = eta_i*exp(gamma1D_i + gamma2W_i(t) + gamma3Z_i)
+  # Treatment assignment: P(D_i = 1) = expit(alpha0 + alpha1W_i) 
+  # Censoring: C_i ~ Unif(tau/2, tau) unless censinform = T, then C_i gen from 0.1texp(eta1D_i + eta2W_i(t) + eta3Z_i)
+  # where
+  #
+  # D: Treatment assignment indicator
+  # W: Treatment confounder
+  # Z: Observation times confounder
+  # Y: Time-varying outcome
+  # t: observation time
+  # phi: random effect
+  # epsilon: random error, function of time
+  
+  
+  
+  mu_Z_D0 <- 2
+  var_Z_D0 <- 1 
+  mu_Z_D1 <- 0
+  var_Z_D1 <- 0.5
+  
+  var_phi <- 0.25
+  var_epsilon <- 1
+  
+  getObsTimesViaThinning <- function(lambda, tmax){
+    # Thinning method for generating NHPP observation times
+    #
+    # lambda: rate function for the NHPP 
+    # tmax: maximum follow up time (tau)
+    
+    # initialize 
+    nobs <- 0
+    m <- 0
+    t0 <- 0
+    s0 <- 0
+    lambdabar <- lambda(tmax) #supremum, intensity is bounded by this HPP
+    
+    times <- c(t0)
+    s <- s0
+    
+    i = m + 1 # R starts at 1 not 0, minor adjustment
+    
+    while(s < tmax){
+      u <- runif(1)
+      w <- -log(u)/lambdabar # makes w ~ exp(lambdabar)
+      s <-  s + w # s_m+1 = s + w
+      D <- runif(1)
+      
+      if(D <= lambda(s)/lambdabar){
+        times <- c(times, s)
+        nobs <- nobs + 1
+      }
+      
+      i <- i + 1
+      m <- m + 1
+    }
+    
+    times <- times[-1]
+    
+    if(times[nobs] <= tmax){
+      return(times)
+    } else{
+      return(times[-nobs])
+    }
+  }
+  
+  
+  
+  # generate subjects one by one and then combine
+  id = 1
+  simdatafull <- data.frame(matrix(NA, ncol = 9))
+  colnames(simdatafull) <- c("id", "time", "D", "W", "Z", "censortime", "cexp_W_D", "cexp_Z_D",  "y")
+  
+  while(id <= n){
+    
+    ## Generate Covariates
+    
+    # generate treatment confounder w ~ N(0,1)
+    W <- runif(1, 0, 1)
+    
+    # generate treatment assignment
+    prD <- expit(alpha0 + alpha1*W)
+    D <- rbinom(1, 1, prD)
+    
+    # generate observation times confounder Z ~ N( mu_Z_D0, var_Z_D0) if D = 0 and 
+    # N( mu_Z_D1, var_Z_D1) if D = 1
+    
+    Z <- ifelse(D == 0, rnorm(1, mu_Z_D0, sqrt(var_Z_D0)), rnorm(1, mu_Z_D1, sqrt(var_Z_D1)))
+    
+    
+    # generate random effect
+    phi <- rnorm(1, 0, var_phi)
+    
+    
+    ## Generate Observation Times
+    
+    # simulate censoring time
+    if(censinform == T){
+      U <- runif(1, 0,1)
+      censortime <- sqrt(2/0.1*(-log(U)*exp(eta1*D+eta2*W+eta3*Z)))
+    }else{
+      censortime <- runif(1, tau/2, tau)
+    }
+    
+    
+    
+    # calculate eta
+    eta <- rgamma(1, shape = 100, scale = 0.01) #eta is for random effect with mean 1 and sd 0.1 
+    #(obs times within subject correlated if sd !0)
+    
+    
+    lambdafun <- function(t) eta*sqrt(t)/2*exp(gamma1*D + gamma2*W*log(t) + gamma3*Z)
+    
+    # generate observation times via thinning
+    obstimes <- getObsTimesViaThinning(lambdafun, tau)
+    obstimes <- round(obstimes,4)
+    
+    if(length(obstimes) > 0){
+      
+      
+      # calculate the number of events for individual i
+      nevents <- length(obstimes)
+      
+      simdata <- data.frame(cbind(rep(id, nevents), obstimes, rep(D, nevents), 
+                                  rep(W, nevents), rep(Z, nevents), rep(censortime, nevents)))
+      colnames(simdata) <- c("id", "time", "D", "W", "Z", "censortime")
+      
+      
+      
+      ## Generate outcome
+      # need conditional expectation and variance of Z | X
+      
+      simdata$cexp_W_D <- 0.5*log(simdata$time) #generated from N(0,1) independently from D
+      simdata$cexp_Z_D <- ifelse(simdata$D == 0, mu_Z_D0, mu_Z_D1)
+      
+      
+      simdata$y <- (2 - simdata$time) + beta1*simdata$D + beta2*(simdata$W*log(simdata$time) - simdata$cexp_W_D) +
+        beta3*(simdata$Z - simdata$cexp_Z_D) + 
+        rep(phi, dim(simdata)[1]) + rnorm(dim(simdata)[1], 0, sqrt(var_epsilon))
+      
+      
+      #remove duplicated times
+      #if subject has two of the same times, remove one of them.
+      is.dup <- duplicated(simdata[, c(1,2)])#find which are duplicates (by ID and time)
+      if(sum(is.dup > 0)){
+        simdata <- simdata[!is.dup,] #remove them
+      }
+      
+      #make sure observation times >0
+      simdata <- simdata[simdata$time>0, ]
+      
+      # filter censored observations
+      censored <- which(simdata$time > censortime)
+      
+      if(length(censored) > 0){
+        # remove censored observations
+        simdata <- simdata[-censored,]
+      }
+      
+      simdatafull <- rbind(simdatafull, simdata)
+      
+    }
+    
+    
+    
+    id = id + 1
+    
+  }
+  
+  simdata <- simdatafull[-1,] #remove empty first row
+  
+  
+  # order dataset by ID then time
+  simdata <- simdata[with(simdata, order(id, time)), ]
+  
+  
+  #include a variable counting observation number, to be used for lagging time for Surv function
+  simdata$obsnumber <- with(simdata, ave(id, id, FUN = seq_along))
+  
+  # #create lagged time variable
+  simdata$time.lag <- simdata$time[c(nrow(simdata),1:(nrow(simdata)-1))]
+  simdata$time.lag[simdata$obsnumber == 1] <- 0
+  
+  simdata$event <- 1
+  
+  
+  #check the generated data
+  numevents <- summary(tapply(simdata$event, simdata$id, sum)) 
+  
+  
+  #also get data for individuals at baseline (all same here)
+  baselinedata <- simdata[simdata$obsnumber == 1, ]
+  newn <- dim(baselinedata)[1] #number of people after censoring etc
+  
+  out <- list(simdata, numevents, baselinedata, newn)
+  names(out) <- c("simdata", "numevents", "baselinedata", "newn")
+  
+  return(out) 
+  
+}
+
+
+#~~~~~~~~~~~~~~~~~~ Reg. Simulation Functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+simulateOneFIPTIW <- function(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau, 
+                              censinform = F, eta1 = NULL, eta2 = NULL, eta3 = NULL){
+  # Simulates one instance of the simulation, obtaining estimates for beta1 under various weighting
+  # IIW uses stabilized weights
+  
+  
+  singlerun <- gendata_FIPTIW(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau,
+                              censinform, eta1, eta2, eta3)
+  simdata <- singlerun$simdata
+  numevents <- singlerun$numevents
+  baselinedata <- singlerun$baselinedata
+  newn <- singlerun$newn
+  
+  
+  beta1_naive <- summary(geeglm(y ~  D + offset(2 - time) - 1, id = id, data = simdata))$coef[1,1] #ATE is biased
+  
+  
+  # IIW Weights
+  gamma.hat <- coxph(Surv(time.lag, time, event) ~ D + tt(W) + Z - 1, tt = function(x, t, ...) x*log(t), data = simdata)$coef
+  delta.hat <- coxph(Surv(time.lag, time, event) ~ D - 1, data = simdata)$coef
+  
+  #iiw <- 1/exp(cbind(simdata$D, simdata$W*log(simdata$time), simdata$Z)%*%gamma.hat)
+  iiw <- exp(cbind(simdata$D)%*%delta.hat)/exp(cbind(simdata$D, simdata$W*log(simdata$time), simdata$Z)%*%gamma.hat)
+  
+  beta1_iiw <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = iiw))$coef[1,1]
+
+  # IPW weights
+  psmod <- glm(D ~ W, family = binomial(link = "logit"), data = simdata)
+  ps <- expit(predict(psmod))
+  prDmod <- glm(D ~ 1, family = binomial(link = "logit"), data = simdata)
+  prD <- expit(predict(prDmod))
+  
+  ipw <- 1/ps*simdata$D+1/(1-ps)*(1-simdata$D)
+
+  beta1_ipw <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = ipw))$coef[1,1]
+
+  fiptiw <- ipw*iiw
+  beta1_fiptiw <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = fiptiw))$coef[1,1]
+
+
+
+  out <- list(beta1,  beta1_naive,  beta1_iiw,
+              beta1_ipw, beta1_fiptiw)
+  names(out) <- c('beta1',  'beta1_naive',  'beta1_iiw', 
+                  'beta1_ipw',  'beta1_fiptiw')
+  return(out)
+}
+
+
+
+simulateResultsFIPTIW <-  function(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3, 
+                                alpha0, alpha1, tau, outputfulldatalist = FALSE,
+                                censinform = F, eta1 = NULL, eta2 = NULL, eta3 = NULL,
+                                inParallel = F, nclusters = NULL){
+  # Simulates N instances of the given scheme 
+  # computes in parallel if inParallel = F
+  #
+  # N: number of simulation runs
+  # n: number of subjects
+  # tau: maximum follow up
+  #
+
+  if(inParallel == TRUE){
+    registerDoParallel(nclusters)
+    
+    results_beta1 <- foreach(i = 1:N, .combine = rbind, .export = c("expit", "simulateOneFIPTIW", 
+                                                  "geeglm", "coxph", "Surv", "gendata_FIPTIW")) %dopar% {
+      simrun <- simulateOneFIPTIW(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau, 
+                      censinform, eta1, eta2, eta3)
+      c(simrun$beta1_naive, simrun$beta1_iiw,simrun$beta1_ipw, simrun$beta1_fiptiw)
+    }
+    
+    
+  } else {
+    
+    results_beta1 <- matrix(data = NA, nrow = N, ncol = 4)
+    
+    for(i in 1:N){
+      if(i%%100 == 0){print(i)}
+      simrun <- simulateOneFIPTIW(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau, censinform, 
+                                  eta1, eta2, eta3)
+      results_beta1[i,] <- c(simrun$beta1_naive, simrun$beta1_iiw,
+                             simrun$beta1_ipw, simrun$beta1_fiptiw)
+    }
+  }
+
+  
+  
+  colnames(results_beta1) <- c("Naive", "IIW", "IPW", "FIPTIW")
+  
+  bias_beta1 <- round(apply(results_beta1, FUN =  mean, MARGIN = 2)  - beta1 ,3)
+  names(bias_beta1) <- c("Naive", "IIW", "IPW", "FIPTIW")
+  
+  var_beta1 <- round(apply(results_beta1, FUN = var, MARGIN = 2), 3)
+  names(var_beta1) <- c("Naive", "IIW", "IPW", "FIPTIW")
+  
+  mse_beta1 <- round(apply((results_beta1 - beta1)^2, FUN = mean, MARGIN = 2), 3)
+  names(mse_beta1) <- c("Naive", "IIW", "IPW", "FIPTIW")
+  
+  
+  
+  ## ## ##
+  
+  naive_beta1 <- c(bias_beta1[1], var_beta1[1], mse_beta1[1])
+  names(naive_beta1) <- c("Bias", "Var", "MSE")
+  
+  IIW_beta1 <- c(bias_beta1[2], var_beta1[2], mse_beta1[2])
+  names(IIW_beta1) <- c("Bias", "Var", "MSE")
+  
+  IPW_beta1 <- c(bias_beta1[3], var_beta1[3], mse_beta1[3])
+  names(IPW_beta1) <- c("Bias", "Var", "MSE")
+  
+  
+  FIPTIW_beta1 <- c(bias_beta1[4], var_beta1[4], mse_beta1[4])
+  names(FIPTIW_beta1) <- c("Bias", "Var", "MSE")
+  
+  if(outputfulldatalist == TRUE){
+    out <- list(bias_beta1, var_beta1, mse_beta1, 
+                naive_beta1,  IIW_beta1, IPW_beta1, 
+                FIPTIW_beta1, results_beta1)
+    
+    names(out) <- c('bias_beta1', 'var_beta1', 'mse_beta1', 
+                    'naive_beta1',  'IIW_beta1', 'IPW_beta1', 
+                    'FIPTIW_beta1', "fullresults_beta1")
+  }else{
+    out <- list(bias_beta1, var_beta1, mse_beta1, 
+                naive_beta1,  IIW_beta1, IPW_beta1, 
+                FIPTIW_beta1)
+    
+    names(out) <- c('bias_beta1', 'var_beta1', 'mse_beta1', 
+                    'naive_beta1',  'IIW_beta1', 'IPW_beta1', 
+                    'FIPTIW_beta1')
+  }
+
+  return(out)
+  
+}
+
+
+simulateALLFIPTIW <- function(N, n, beta1, beta2, beta3, gamma1, gamma2vec, gamma3vec, 
+                                    alpha0, alpha1vec, tau, outputfulldatalist = FALSE, censinform = F, 
+                                    eta1 = NULL, eta2 = NULL, eta3 = NULL, 
+                                    inParallel = F, nclusters = NULL){
+  #N: number of simulation runs
+  #n: vector of sample sizes
+  #beta1: coefficient for Xi(t) in logistic outcome model
+  #beta2: vector of coefficients to consider for outcome generation model
+  #gamma1, gamma2 parameters for intensity for Xi(t) and Zi, respectively
+  #tau: maximum follow-up time
+  #inParallel: runs in parallel with nclusters if true
+  
+  #This function aggregates simulation results for varying n and beta2
+  
+  
+  
+  resultsmat <- matrix(NA, nrow = 1, ncol = 15)
+  resultsmat_stabilized <- matrix(NA, nrow = 1, ncol = 15)
+  fulldatalist <- list()
+  fulldatalistnames <- c()
+  
+  i = 1
+  
+  
+  for(gamma2 in gamma2vec){
+    for(gamma3 in gamma3vec){
+      for(alpha1 in alpha1vec){
+
+        
+        print(paste("Now on gamma2 = ", gamma2, ", gamma3 =", gamma3, ", alpha1 =  ", alpha1, sep = ""))
+        result <- simulateResultsFIPTIW(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3, 
+                                              alpha0, alpha1, tau, outputfulldatalist, censinform, 
+                                              eta1, eta2, eta3, inParallel, nclusters)
+        
+        resultsmat <- rbind(resultsmat, c(gamma2,  gamma3, alpha1,
+                                          result$naive_beta1, result$IIW_beta1, 
+                                          result$IPW_beta1, result$FIPTIW_beta1))
+        
+        # resultsmat_stabilized <- rbind(resultsmat_stabilized, c(gamma2,  gamma3, alpha1,
+        #                                                         result$naive_beta1, result$IIWstab_beta1, 
+        #                                                         result$IPWstab_beta1, result$FIPTIWstab_beta1))
+        # 
+        
+        listname <- paste("fulldata_gamma2_",gamma2, "_gamma3_", gamma3, "_alpha1_", alpha1, sep = "")
+        
+        if(outputfulldatalist == TRUE){
+          fulldatalist[[i]] <- result$fullresults_beta1
+          fulldatalistnames <- c(fulldatalistnames, listname)
+        }
+
+        
+        i <- i + 1
+        
+      }
+    }
+  }
+  
+  if(outputfulldatalist == TRUE){
+    names(fulldatalist) <- fulldatalistnames
+  }
+
+  
+  
+  resultsmat<- resultsmat[-1,]
+  # resultsmat_stabilized <- resultsmat_stabilized[-1,]
+  
+  colnames(resultsmat) <- c( "gamma2",  "gamma3", "alpha1", "Bias", "Var" , "MSE" , "Bias", "Var" , "MSE" , "Bias", "Var" , "MSE", "Bias", "Var" , "MSE" )
+  # colnames(resultsmat_stabilized) <- c( "gamma2", "gamma3", "alpha1", "Bias", "Var" , "MSE" , "Bias", "Var" , "MSE" , "Bias", "Var" , "MSE", "Bias", "Var" , "MSE" )
+  
+  if(outputfulldatalist == TRUE){
+    out <- list(resultsmat, fulldatalist)
+    names(out) <- c("resultsmat", "fulldatalist")
+  }else{
+    out <- list(resultsmat)
+    names(out) <- c("resultsmat")
+  }
+
+  return(out)
+}
+
+
+
+#~~~~~~~~~~~~~~~~ Results for Informative Censoring Violations ~~~~~~~~ # 
+
+simulateALLFIPTIW_CENS<- function(N, n, beta1, beta2, beta3, gamma1, gamma2vec, gamma3vec, 
+                                    alpha0, alpha1vec, tau, outputfulldatalist = FALSE, censinform = F, 
+                                    eta1 = NULL, eta2 = NULL, eta3 = NULL){
+  #N: number of simulation runs
+  #n: vector of sample sizes
+  #beta1: coefficient for Xi(t) in logistic outcome model
+  #beta2: vector of coefficients to consider for outcome generation model
+  #gamma1, gamma2 parameters for intensity for Xi(t) and Zi, respectively
+  #tau: maximum follow-up time
+  
+  #This function aggregates simulation results for varying n and beta2
+  
+  
+  
+  resultsmat <- matrix(NA, nrow = 1, ncol = 15)
+  fulldatalist <- list()
+  fulldatalistnames <- c()
+  
+  i = 1
+  
+  
+  for(eta1 in eta1vec){
+    for(eta2 in eta2vec){
+      for(eta3 in eta3vec){
+        
+  
+        print(paste("Now on eta1 = ", eta1, ", eta2 =", eta2, ", eta3 =  ", eta3, sep = ""))
+        result <- simulateResultsFIPTIW(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3, 
+                                              alpha0, alpha1, tau, outputfulldatalist, censinform, 
+                                              eta1, eta2, eta3)
+        
+        resultsmat <- rbind(resultsmat, c(eta1,  eta2, eta3,
+                                          result$naive_beta1, result$IIW_beta1, 
+                                          result$IPW_beta1, result$FIPTIW_beta1))
+        
+        
+        listname <- paste("fulldata_eta1_",eta1, "_eta2_", eta2, "_eta3_", eta3, sep = "")
+        
+        if(outputfulldatalist == TRUE){
+          fulldatalist[[i]] <- result$fullresults_beta1
+          fulldatalistnames <- c(fulldatalistnames, listname)
+        }
+        
+        
+        i <- i + 1
+        
+      }
+    }
+  }
+  
+  if(outputfulldatalist == TRUE){
+    names(fulldatalist) <- fulldatalistnames
+  }
+  
+  
+  
+  resultsmat<- resultsmat[-1,]
+  
+  colnames(resultsmat) <- c( "eta1",  "eta2", "eta3", "Bias", "Var" , "MSE" , "Bias", "Var" , "MSE" , "Bias", "Var" , "MSE", "Bias", "Var" , "MSE" )
+
+  if(outputfulldatalist == TRUE){
+    out <- list(resultsmat, fulldatalist)
+    names(out) <- c("resultsmat", "fulldatalist")
+  }else{
+    out <- list(resultsmat)
+    names(out) <- c("resultsmat")
+  }
+  
+  return(out)
+}
+
+
+
+
+
+
+#~~~~~~~~~~~~~~~~~ Variable Selection Function (for IIW only) ~~~~~~~~~~~~~~~~~~#
+
+
+simulateOneVarSel <- function(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau){
+  # Gets required results from one simulation run. We are interested in Beta1 with all possible combinations of 
+  # the covariates as covariates in the intensity model.
+  # IIW weights are stabiized version. 
+  #
+  # n: number of subjects
+  # tau: maximum follow up
+  #
+  # Data generation model: Y_i(t)  = (2-t) + beta1D_i + beta2[W_i - E(w_i|D_i)] + 
+  #                                     beta3[Z_i - E(Z_i|D_i)] + phi_i + epsilon_i(t)
+  #
+  # Marginal model: E(Y_i(t) | D_i) = E{(2-t) + beta1D_i + beta2[W_i - E(w_i|D_i)] + beta3(Z_i - E(Z_i|D_i)) | D_i]
+  #                                 = (2-t) + beta1D_i + betaE{2[W_i - W(W_i|D_i) | D_i] + beta3E{Z_i - E(Z_i|D_i)|D_i}
+  #                                 = (2-t) + beta1D_i 
+  #  
+  # Observation intensity: lambda_i(t) = eta_i*exp(gamma1D_i + gamma2W_i + gamma3Z_i)
+  # Treatment assignment: P(D_i = 1) = expit(alpha0 + alpha1W_i) 
+  #
+  # where
+  #
+  # D: Treatment assignment indicator
+  # W: Treatment confounder
+  # Z: Observation times confounder
+  # Y: Time-varying outcome
+  # t: observation time
+  # phi: random effect
+  
+  #generate data according to the TRUE scheme
+  singlerun <- gendata_FIPTIW(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau)
+  simdata <- singlerun$simdata
+  numevents <- singlerun$numevents
+  baselinedata <- singlerun$baselinedata
+  newn <- singlerun$newn
+  
+  beta1_naive <- summary(geeglm(y ~  D + offset(2 - time) - 1, id = id, data = simdata))$coef[1,1] #ATE is biased
+  
+
+  
+  # # #### From the Buzkova 2010 paper of an application of IIW
+  
+  ## estimate delta hat
+  delta.hat <-coxph(Surv(time.lag, time, event) ~ D - 1, data = simdata)$coef
+
+  
+  ## estimate gamma hat, intensity, beta1
+  
+  # intensity using D, W, Z
+  gamma.hat_DWZ <-   gamma.hat <- coxph(Surv(time.lag, time, event) ~ D + tt(W) + Z - 1, tt = function(x, t, ...) x*log(t), data = simdata)$coef
+  iiw_DWZ <- exp(cbind(simdata$D)%*%delta.hat)/exp(cbind(simdata$D, simdata$W*log(simdata$time), simdata$Z)%*%gamma.hat)
+  beta1_iiw_DWZ <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = iiw_DWZ))$coef[1,1]
+
+
+  
+  # intensity using D,W
+  gamma.hat_DW <-   gamma.hat <- coxph(Surv(time.lag, time, event) ~ D + tt(W)  - 1, tt = function(x, t, ...) x*log(t), data = simdata)$coef
+  iiw_DW <- exp(cbind(simdata$D)%*%delta.hat)/exp(cbind(simdata$D, simdata$W*log(simdata$time))%*%gamma.hat)
+  beta1_iiw_DW <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = iiw_DW))$coef[1,1]
+
+  
+  
+  # intensity using D, Z
+  gamma.hat_DZ <-   gamma.hat <- coxph(Surv(time.lag, time, event) ~ D + Z - 1, data = simdata)$coef
+  iiw_DZ <- exp(cbind(simdata$D)%*%delta.hat)/exp(cbind(simdata$D,  simdata$Z)%*%gamma.hat)
+  beta1_iiw_DZ <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = iiw_DZ))$coef[1,1]
+
+  
+  # intensity using  W, Z
+  gamma.hat_WZ <-   gamma.hat <- coxph(Surv(time.lag, time, event) ~ tt(W) + Z - 1, tt = function(x, t, ...) x*log(t), data = simdata)$coef
+  iiw_WZ <- exp(cbind(simdata$D)%*%delta.hat)/exp(cbind( simdata$W*log(simdata$time), simdata$Z)%*%gamma.hat)
+  beta1_iiw_WZ <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = iiw_WZ))$coef[1,1]
+
+  
+  # intensity using D
+  gamma.hat_D <-   gamma.hat <- coxph(Surv(time.lag, time, event) ~ D  - 1,  data = simdata)$coef
+  iiw_D <- exp(cbind(simdata$D)%*%delta.hat)/exp(cbind(simdata$D)%*%gamma.hat)
+  beta1_iiw_D <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = iiw_D))$coef[1,1]
+
+  
+  
+  # intensity using W
+  gamma.hat_W <-   gamma.hat <- coxph(Surv(time.lag, time, event) ~ tt(W) - 1, tt = function(x, t, ...) x*log(t), data = simdata)$coef
+  iiw_W <- exp(cbind(simdata$D)%*%delta.hat)/exp(cbind(simdata$W*log(simdata$time))%*%gamma.hat)
+  beta1_iiw_W <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = iiw_W))$coef[1,1]
+
+  
+  
+  # intensity using Z
+  gamma.hat_Z <-   gamma.hat <- coxph(Surv(time.lag, time, event) ~  Z - 1,  data = simdata)$coef
+  iiw_Z <- exp(cbind(simdata$D)%*%delta.hat)/exp(cbind( simdata$Z)%*%gamma.hat)
+  beta1_iiw_Z <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = iiw_Z))$coef[1,1]
+
+  
+  
+  
+  out <- list(beta1, beta1_naive, 
+              beta1_iiw_DWZ,
+              beta1_iiw_DW, 
+              beta1_iiw_DZ,
+              beta1_iiw_WZ, 
+              beta1_iiw_D,
+              beta1_iiw_W,  
+              beta1_iiw_Z)
+  
+  
+  names(out) <- c('beta1', 'beta1_naive', 
+                  'beta1_iiw_DWZ',  
+                  'beta1_iiw_DW', 
+                  'beta1_iiw_DZ',
+                  'beta1_iiw_WZ',
+                  'beta1_iiw_D',
+                  'beta1_iiw_W', 
+                  'beta1_iiw_Z')
+  return(out)
+}
+
+
+
+
+
+
+simulateResultsVarSel <-  function(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau,
+                                   inParallel = F, nclusters = NULL){
+  # Gets required results from N simulation runs. We are interested in Beta1 and beta2
+
+  if(inParallel == T){
+    
+    registerDoParallel(nclusters)
+    
+    results_beta1 <- foreach(i = 1:N, .combine = rbind, .export = c("expit", "simulateOneFIPTIW", 
+                                                                    "geeglm", "coxph", "Surv", "gendata_FIPTIW", 
+                                                                    "simulateOneVarSel")) %dopar% {
+                                                                      
+              simrun <- simulateOneVarSel(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau)
+              c(simrun$beta1_naive,   simrun$beta1_iiw_D, simrun$beta1_iiw_W, simrun$beta1_iiw_Z,
+                simrun$beta1_iiw_DW, simrun$beta1_iiw_DZ, simrun$beta1_iiw_WZ, simrun$beta1_iiw_DWZ)
+        }
+    
+  } else {
+    
+    results_beta1 <- matrix(data = NA, nrow = N, ncol = 8)
+    
+    
+    for(i in 1:N){
+      if(i%%100 == 0){print(i)}
+      simrun <- simulateOneVarSel(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau)
+      results_beta1[i,] <- c(simrun$beta1_naive,   simrun$beta1_iiw_D, simrun$beta1_iiw_W, simrun$beta1_iiw_Z,
+                             simrun$beta1_iiw_DW, simrun$beta1_iiw_DZ, simrun$beta1_iiw_WZ, simrun$beta1_iiw_DWZ) 
+      
+    }
+    
+  }
+ 
+  
+  
+  #~~~~ Results for Beta1 ~~~~#
+  
+  bias_beta1 <- round(apply(results_beta1, FUN =  mean, MARGIN = 2)  - beta1 ,3)
+  names(bias_beta1) <- c("Naive", "D", "W", "Z", "D,W", "D,Z", "W,Z", "D,W,Z")
+
+  
+  var_beta1 <- round(apply(results_beta1, FUN = var, MARGIN = 2), 3)
+  names(var_beta1) <- c("Naive", "D", "W", "Z", "D,W", "D,Z", "W,Z", "D,W,Z")
+
+  
+  mse_beta1 <- round(apply((results_beta1 - beta1)^2, FUN = mean, MARGIN = 2),3)
+  names(mse_beta1) <- c("Naive", "D", "W", "Z", "D,W", "D,Z", "W,Z", "D,W,Z")
+
+
+  
+  
+  out <- list(bias_beta1, var_beta1, mse_beta1)
+  names(out) <- c('bias_beta1', 'var_beta1', 'mse_beta1')
+  return(out)
+  
+}
+
+
+
+simulateALLVarSel <- function(N, n, beta1, beta2vec, beta3, gamma1, gamma2vec, gamma3, alpha0, alpha1, tau,
+                              inParallel = F, nclusters = NULL){
+  #N: number of simulation runs
+  #This function aggregates simulation results for varying n and beta02
+  
+  
+  
+  resultsmat_beta01 <- matrix(NA, nrow = 1, ncol = 11)
+  
+  i = 1
+  
+  for(gamma2 in gamma2vec){
+    for(beta2 in beta2vec){
+      print(paste("Now on gamma02 = ", gamma2, " and beta2 = ", beta2, sep = ""))
+      result <- simulateResultsVarSel(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau,
+                                      inParallel, nclusters)
+      
+      resultsmat_beta01 <- rbind(resultsmat_beta01, 
+                                 c(gamma2, beta2, rep(" ", 9)),
+                                 c("", "", "Bias:", result$bias_beta1), 
+                                 c("", "", "Variance:", result$var_beta1), 
+                                 c("", '', "MSE:", result$mse_beta1))
+      
+      
+      i <- i + 1
+    }
+  }
+  
+  resultsmat_beta01 <- resultsmat_beta01[-1,]
+  
+  
+  out <- list(resultsmat_beta01)
+  names(out) <- c("resultsmat_beta01")
+  return(out)
+}
+
+
+
+
+#############################################################
+############ Weight Trimming Simulation #####################
+#############################################################
+
+
+gendata_FIPTIW_baseline <- function(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau){
+
+
+  #same as gendata_MIPI_timevar but all subjects forced to have a baseline observation (t = 0.01)
+
+  mu_Z_D0 <- 2
+  var_Z_D0 <- 1
+  mu_Z_D1 <- 0
+  var_Z_D1 <- 0.5
+
+  var_phi <- 0.25
+  var_epsilon <- 1
+
+  getObsTimesViaThinning <- function(lambda, tmax){
+    # Thinning method for generating NHPP observation times
+    #
+    # lambda: rate function for the NHPP
+    # tmax: maximum follow up time (tau)
+
+    # initialize
+    nobs <- 0
+    m <- 0
+    t0 <- 0
+    s0 <- 0
+    lambdabar <- lambda(tmax) #supremum, intensity is bounded by this HPP
+
+    times <- c(t0)
+    s <- s0
+
+    i = m + 1 # R starts at 1 not 0, minor adjustment
+
+    while(s < tmax){
+      u <- runif(1)
+      w <- -log(u)/lambdabar # makes w ~ exp(lambdabar)
+      s <-  s + w # s_m+1 = s + w
+      D <- runif(1)
+
+      if(D <= lambda(s)/lambdabar){
+        times <- c(times, s)
+        nobs <- nobs + 1
+      }
+
+      i <- i + 1
+      m <- m + 1
+    }
+
+    times <- times[-1]
+
+    if(times[nobs] <= tmax){
+      return(times)
+    } else{
+      return(times[-nobs])
+    }
+  }
+
+
+
+
+  #generate subjects one by one and then combine
+  id = 1
+  simdatafull <- data.frame(matrix(NA, ncol = 9))
+  colnames(simdatafull) <- c("id", "time", "D", "W", "Z", "censortime", "cexp_W_D", "cexp_Z_D",  "y")
+
+  while(id <= n){
+
+    ## Generate Covariates
+
+    # generate treatment confounder w ~ N(0,1)
+    W <- runif(1, 0, 1)
+
+    # generate treatment assignment
+    prD <- expit(alpha0 + alpha1*W)
+    D <- rbinom(1, 1, prD)
+
+    # generate observation times confounder Z ~ N( mu_Z_D0, var_Z_D0) if D = 0 and
+    # N( mu_Z_D1, var_Z_D1) if D = 1
+
+    Z <- ifelse(D == 0, rnorm(1, mu_Z_D0, sqrt(var_Z_D0)), rnorm(1, mu_Z_D1, sqrt(var_Z_D1)))
+
+
+    # generate random effect
+    phi <- rnorm(1, 0, var_phi)
+
+
+    ## Generate Observation Times
+
+    # simulate censoring time
+    censortime <- runif(1, tau/2, tau)
+
+    # calculate eta
+    eta <- rgamma(1, shape = 100, scale = 0.01) #eta is for random effect with mean 1 and sd 0.1
+    #(obs times within subject correlated if sd !0)
+
+
+    lambdafun <- function(t) eta*sqrt(t)/2*exp(gamma1*D + gamma2*W*log(t) + gamma3*Z)
+
+    # generate observation times via thinning
+    obstimes <- getObsTimesViaThinning(lambdafun, tau)
+    obstimes <- c(0.01, obstimes) #force everyone to have an observation at baseline
+    obstimes <- round(obstimes,2)
+
+    if(length(obstimes) > 0){
+
+
+      # calculate the number of events for individual i
+      nevents <- length(obstimes)
+
+      simdata <- data.frame(cbind(rep(id, nevents), obstimes, rep(D, nevents),
+                                  rep(W, nevents), rep(Z, nevents), rep(censortime, nevents)))
+      colnames(simdata) <- c("id", "time", "D", "W", "Z", "censortime")
+
+
+
+      ## Generate outcome
+      # need conditional expectation and variance of Z | X
+
+      simdata$cexp_W_D <- 0.5*log(simdata$time) #W generated from N(0,1) independently from D
+      simdata$cexp_Z_D <- ifelse(simdata$D == 0, mu_Z_D0, mu_Z_D1)
+
+
+      simdata$y <- (2 - simdata$time) + beta1*simdata$D + beta2*(simdata$W*log(simdata$time) - simdata$cexp_W_D) +
+        beta3*(simdata$Z - simdata$cexp_Z_D) +
+        rep(phi, dim(simdata)[1]) + rnorm(dim(simdata)[1], 0, sqrt(var_epsilon))
+
+
+      #remove duplicated times
+      #if subject has two of the same times, remove one of them.
+      is.dup <- duplicated(simdata[, c(1,2)])#find which are duplicates (by ID and time)
+      if(sum(is.dup > 0)){
+        simdata <- simdata[!is.dup,] #remove them
+      }
+
+      #make sure observation times >0
+      simdata <- simdata[simdata$time>0, ]
+
+      # filter censored observations
+      censored <- which(simdata$time > censortime)
+
+      if(length(censored) > 0){
+        # remove censored observations
+        simdata <- simdata[-censored,]
+      }
+
+      simdatafull <- rbind(simdatafull, simdata)
+
+    }
+
+
+
+    id = id + 1
+
+  }
+
+
+  simdata <- simdatafull[-1,]
+
+  # order dataset by ID then time
+  simdata <- simdata[with(simdata, order(id, time)), ]
+
+
+  #include a variable counting observation number, to be used for lagging time for Surv function
+  simdata$obsnumber <- with(simdata, ave(id, id, FUN = seq_along))
+
+  # #create lagged time variable
+  simdata$time.lag <- simdata$time[c(nrow(simdata),1:(nrow(simdata)-1))]
+  simdata$time.lag[simdata$obsnumber == 1] <- 0
+
+  simdata$event <- 1
+
+
+  #check the generated data
+  numevents <- summary(tapply(simdata$event, simdata$id, sum))
+
+
+  #also get data for individuals at baseline (all same here)
+  baselinedata <- simdata[simdata$obsnumber == 1, ]
+  newn <- dim(baselinedata)[1] #number of people after censoring etc
+
+  out <- list(simdata, numevents, baselinedata, newn)
+  names(out) <- c("simdata", "numevents", "baselinedata", "newn")
+
+  return(out)
+
+}
+
+
+
+gendataMIPI_modelmisspec <- function(n, beta1, beta2, beta3, 
+                                     gamma1, gamma2, gamma3, gamma4, gamma5, gamma6, 
+                                     alpha0, alpha1, alpha2, alpha3, 
+                                     tau, IPTWtype = "none", IIWtype = "none"){
+  
+  
+  mu_Z_D0 <- 2
+  var_Z_D0 <- 1
+  mu_Z_D1 <- 0
+  var_Z_D1 <- 0.5
+  
+  var_phi <- 0.25
+  var_epsilon <- 1
+  
+  getObsTimesViaThinning <- function(lambda, tmax){
+    # Thinning method for generating NHPP observation times
+    #
+    # lambda: rate function for the NHPP
+    # tmax: maximum follow up time (tau)
+    
+    # initialize
+    nobs <- 0
+    m <- 0
+    t0 <- 0
+    s0 <- 0
+    lambdabar <- lambda(tmax) #supremum, intensity is bounded by this HPP
+    
+    times <- c(t0)
+    s <- s0
+    
+    i = m + 1 # R starts at 1 not 0, minor adjustment
+    
+    while(s < tmax){
+      u <- runif(1)
+      w <- -log(u)/lambdabar # makes w ~ exp(lambdabar)
+      s <-  s + w # s_m+1 = s + w
+      D <- runif(1)
+      
+      if(D <= lambda(s)/lambdabar){
+        times <- c(times, s)
+        nobs <- nobs + 1
+      }
+      
+      i <- i + 1
+      m <- m + 1
+    }
+    
+    times <- times[-1]
+    
+    if(times[nobs] <= tmax){
+      return(times)
+    } else{
+      return(times[-nobs])
+    }
+  }
+  
+  
+  
+  
+  #generate subjects one by one and then combine
+  id = 1
+  simdatafull <- data.frame(matrix(NA, ncol = 11))
+  colnames(simdatafull) <- c("id", "time", "D", "W", "Z", "G", "censortime", "cexp_W_D", "cexp_Z_D", "cexp_G_D",  "y")
+  
+  while(id <= n){
+    
+    ## Generate Covariates
+    
+    G <- rnorm(1, 0, 1) #confounder G ~ N(0, 1)
+    
+    # generate treatment confounder W ~ U(0,1)
+    W <- runif(1, 0, 1)
+    
+    # generate treatment assignment
+    
+    if(IPTWtype == "mild"){
+      prD <- expit(alpha0 + alpha1*W + alpha2*G + alpha3*W^2 + alpha4*G^2 + alpha5*W*G)
+    }else if(IPTWtype == "moderate"){
+      prD <- expit(alpha0 + alpha1*W + alpha2*G + alpha3*W^2 + alpha4*G^2 + alpha5*W*G + 
+                     alpha6*W^3 + alpha7*G^3 + alpha8*W^2*G^2)
+    }else{
+     prD <- expit(alpha0 + alpha1*W)
+    }
+    
+    D <- rbinom(1, 1, prD)
+    
+    # generate observation times confounder Z ~ N( mu_Z_G0, var_Z_G0) if D = 0 and
+    # N( mu_Z_G1, var_Z_G1) if D = 1
+    
+    Z <- ifelse(D == 0, rnorm(1, mu_Z_G0, sqrt(var_Z_G0)), rnorm(1, mu_Z_G1, sqrt(var_Z_G1)))
+    
+    
+    # generate random effect
+    phi <- rnorm(1, 0, var_phi)
+    
+    
+    ## Generate Observation Times
+    
+    # simulate censoring time
+    censortime <- runif(1, tau/2, tau)
+    
+    # calculate eta
+    eta <- rgamma(1, shape = 100, scale = 0.01) #eta is for random effect with mean 1 and sd 0.1
+    #(obs times within subject correlated if sd !0)
+    
+    if(IIWtype == "mild"){
+      lambdafun <- function(t) eta*sqrt(t)/2*exp(gamma1*D + gamma2*W*log(t) + gamma3*Z + gamma4*G +
+                                                 gamma5*Z^2 + gamma6*G^2 + gamma7*Z*G)
+    }else if(IIWtype == "moderate"){
+      lambdafun <- function(t) eta*sqrt(t)/2*exp(gamma1*D + gamma2*W*log(t) + gamma3*Z + gamma4*G +
+                                                   gamma5*Z^2 + gamma6*G^2 + gamma7*Z*G + gamma8*Z^3 + gamma9*G^3 +
+                                                   gamma10*Z^2*G^2 + gamma11*W*log(t)*Z*G)
+    }else{
+      lambdafun <- function(t) eta*sqrt(t)/2*exp(gamma1*D + gamma2*W*log(t) + gamma3*Z)
+    }
+    
+    # generate observation times via thinning
+    obstimes <- getObsTimesViaThinning(lambdafun, tau)
+    obstimes <- c(0.01, obstimes) #force everyone to have an observation at baseline
+    obstimes <- round(obstimes,2)
+    
+    if(length(obstimes) > 0){
+      
+      
+      # calculate the number of events for individual i
+      nevents <- length(obstimes)
+      
+      simdata <- data.frame(cbind(rep(id, nevents), obstimes, rep(D, nevents),
+                                  rep(W, nevents), rep(Z, nevents), rep(G, nevents), 
+                                  rep(censortime, nevents)))
+      colnames(simdata) <- c("id", "time", "D", "W", "Z", "G", "censortime")
+      
+      
+      
+      ## Generate outcome
+      # need conditional expectation and variance of Z | X
+      
+      simdata$cexp_W_D <- 0.5*log(simdata$time) #W generated from N(0,1) independently from D
+      simdata$cexp_Z_D <- ifelse(simdata$D == 0, mu_Z_G0, mu_Z_G1)
+      simdata$cexp_G_D <- 0
+      
+      simdata$y <- (2 - simdata$time) + beta1*simdata$D + beta2*(simdata$W*log(simdata$time) - simdata$cexp_W_D) +
+        beta3*(simdata$Z - simdata$cexp_Z_D) + beta4*(simdata$G - simdata$cexp_G_D)
+        rep(phi, dim(simdata)[1]) + rnorm(dim(simdata)[1], 0, sqrt(var_epsilon))
+      
+      
+      #remove duplicated times
+      #if subject has two of the same times, remove one of them.
+      is.dup <- duplicated(simdata[, c(1,2)])#find which are duplicates (by ID and time)
+      if(sum(is.dup > 0)){
+        simdata <- simdata[!is.dup,] #remove them
+      }
+      
+      #make sure observation times >0
+      simdata <- simdata[simdata$time>0, ]
+      
+      # filter censored observations
+      censored <- which(simdata$time > censortime)
+      
+      if(length(censored) > 0){
+        # remove censored observations
+        simdata <- simdata[-censored,]
+      }
+      
+      simdatafull <- rbind(simdatafull, simdata)
+      
+    }
+    
+    
+    
+    id = id + 1
+    
+  }
+  
+  
+  simdata <- simdatafull[-1,]
+  
+  # order dataset by ID then time
+  simdata <- simdata[with(simdata, order(id, time)), ]
+  
+  
+  #include a variable counting observation number, to be used for lagging time for Surv function
+  simdata$obsnumber <- with(simdata, ave(id, id, FUN = seq_along))
+  
+  # #create lagged time variable
+  simdata$time.lag <- simdata$time[c(nrow(simdata),1:(nrow(simdata)-1))]
+  simdata$time.lag[simdata$obsnumber == 1] <- 0
+  
+  simdata$event <- 1
+  
+  
+  #check the generated data
+  numevents <- summary(tapply(simdata$event, simdata$id, sum))
+  
+  
+  #also get data for individuals at baseline (all same here)
+  baselinedata <- simdata[simdata$obsnumber == 1, ]
+  newn <- dim(baselinedata)[1] #number of people after censoring etc
+  
+  out <- list(simdata, numevents, baselinedata, newn)
+  names(out) <- c("simdata", "numevents", "baselinedata", "newn")
+  
+  return(out)
+  
+}
+
+
+
+simulateOneWeightTrimming <- function( n, beta1, beta2, beta3, gamma1, gamma2, gamma3, 
+                                       alpha0, alpha1, tau, baseline){
+  #iiw weight are stabilized
+  
+  # simulate the data
+  if(baseline == T){
+    singlerun <- gendata_FIPTIW_baseline(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau)
+  }else{
+    singlerun <- gendata_FIPTIW(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau)
+    
+  }
+  
+  simdata <- singlerun$simdata
+  numevents <- singlerun$numevents
+  baselinedata <- singlerun$baselinedata
+  newn <- singlerun$newn
+  
+
+  # IIW Weights
+  delta.hat <-coxph(Surv(time.lag, time, event) ~ D - 1, data = simdata)$coef
+  gamma.hat <- coxph(Surv(time.lag, time, event) ~ D + W + Z - 1, data = simdata)$coef
+  iiw <- exp(cbind(simdata$D)%*%delta.hat)/exp(cbind(simdata$D, simdata$W, simdata$Z)%*%gamma.hat)
+
+  beta1_iiw_notrim <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = iiw))$coef[1,1]
+
+  # IPW weights
+  psmod <- glm(D ~ W, family = binomial(link = "logit"), data = simdata)
+  ps <- expit(predict(psmod))
+  iptw <- 1/ps*simdata$D+1/(1-ps)*(1-simdata$D)
+
+  # #number of observations per individual
+  # obs_per_id <- simdata %>% count(id)
+  
+  beta1_iptw_notrim <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = iptw))$coef[1,1]
+ 
+  fiptiw <- iptw*iiw
+  beta1_fiptiw_notrim <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = fiptiw))$coef[1,1]
+
+  
+  beta1_indtrimmed_vec <- c()
+  beta1_trimmed_vec <- c()
+  
+  thres_iiw <- quantile(iiw, seq(0.5, 1, by = 0.01))
+  thres_iptw <- quantile(iptw, seq(0.5, 1, by = 0.01))
+  thres_fiptiw <- quantile(fiptiw, seq(0.5, 1, by = 0.01))
+  
+  
+  
+  for(i in 1:51){
+    # for each percentile from 50 to 100 (no trimming)
+    iiw_trimmed <- iiw
+    iptw_trimmed <- iptw
+    fiptiw_trimmed <- fiptiw
+    
+    # trim the IIW and IPTW weights individually, multiply them, calculate beta
+    iiw_trimmed[iiw_trimmed > thres_iiw[i]] <- thres_iiw[i]
+    iptw_trimmed[iptw_trimmed > thres_iptw[i]] <- thres_iptw[i]
+    
+    fiptiw_indtrimmed <-  iiw_trimmed* iptw_trimmed
+    
+    # trim the FIPTIW weights, calculate beta
+    fiptiw_trimmed[fiptiw_trimmed > thres_fiptiw[i]] <- thres_fiptiw[i]
+    
+    beta1_indtrimmed <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = fiptiw_indtrimmed))$coef[1,1]
+    beta1_trimmed <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = fiptiw_trimmed))$coef[1,1]  
+    
+    beta1_indtrimmed_vec <- c(beta1_indtrimmed_vec, beta1_indtrimmed)
+    beta1_trimmed_vec <- c(beta1_trimmed_vec, beta1_trimmed)
+    }
+    
+  names(beta1_indtrimmed_vec) <- c(50:100)
+  names(beta1_trimmed_vec) <- c(50:100)
+  
+  proportion_raw_greater_than_5_fiptiw <- sum(fiptiw > 5)/length(fiptiw)
+  proportion_raw_greater_than_10_fiptiw <- sum(fiptiw > 10)/length(fiptiw)
+  proportion_raw_greater_than_20_fiptiw <- sum(fiptiw > 20)/length(fiptiw)
+  maxweight_fiptiw <- max(fiptiw)
+  
+  proportion_raw_greater_than_5_iiw <- sum(iiw > 5)/length(iiw)
+  proportion_raw_greater_than_10_iiw <- sum(iiw > 10)/length(iiw)
+  proportion_raw_greater_than_20_iiw <- sum(iiw > 20)/length(iiw)
+  maxweight_iiw <- max(iiw)
+  
+  proportion_raw_greater_than_5_iptw <- sum(fiptiw > 5)/length(iptw)
+  proportion_raw_greater_than_10_iptw <- sum(fiptiw > 10)/length(iptw)
+  proportion_raw_greater_than_20_iptw <- sum(fiptiw > 20)/length(iptw)
+  maxweight_iptw <- max(iptw)
+  
+
+  #find optimal cutpoint?
+  
+  out <- list(beta1_indtrimmed_vec, beta1_trimmed_vec, 
+              proportion_raw_greater_than_5_fiptiw, proportion_raw_greater_than_10_fiptiw, 
+              proportion_raw_greater_than_20_fiptiw, proportion_raw_greater_than_5_iiw, 
+              proportion_raw_greater_than_10_iiw, 
+              proportion_raw_greater_than_20_iiw, proportion_raw_greater_than_5_iptw, 
+              proportion_raw_greater_than_10_iptw, 
+              proportion_raw_greater_than_20_iptw,
+              maxweight_fiptiw, maxweight_iiw, maxweight_iptw)
+  names(out) <- c("TrimmedFirst", "TrimmedAfterMult",
+                  'proportion_raw_greater_than_5_fiptiw', 'proportion_raw_greater_than_10_fiptiw', 
+                  'proportion_raw_greater_than_20_fiptiw', 'proportion_raw_greater_than_5_iiw', 
+                  'proportion_raw_greater_than_10_iiw', 
+                  'proportion_raw_greater_than_20_iiw', 'proportion_raw_greater_than_5_iptw', 
+                  'proportion_raw_greater_than_10_iptw', 'proportion_raw_greater_than_20_iptw',
+                  'maxweight_fiptiw', 'maxweight_iiw', 'maxweight_iptw')
+  
+  return(out)
+  
+  }
+
+
+
+simulateOneWeightTrimming_misspec <- function( n, beta1, beta2, beta3, 
+                                       gamma1, gamma2, gamma3, gamma4, gamma5, gamma6, 
+                                       alpha0, alpha1, alpha2, alpha3,
+                                       tau, IIWtype, IPTWtype){
+  
+
+  singlerun <- gendataMIPI_modelmisspec( n, beta1, beta2, beta3, 
+                                         gamma1, gamma2, gamma3, gamma4, gamma5, gamma6, 
+                                         alpha0, alpha1, alpha2, alpha3,
+                                         tau, IIWtype, IPTWtype)
+
+  
+  simdata <- singlerun$simdata
+  numevents <- singlerun$numevents
+  baselinedata <- singlerun$baselinedata
+  newn <- singlerun$newn
+  
+  
+  # IIW Weights
+  gamma.hat <- coxph(Surv(time.lag, time, event) ~ D + W + Z + G - 1, data = simdata)$coef
+  iiw <- 1/exp(cbind(simdata$D, simdata$W, simdata$Z, simdata$G)%*%gamma.hat)
+  
+  beta1_iiw_notrim <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = iiw))$coef[1,1]
+  
+  # IPW weights
+  psmod <- glm(D ~ W + G, family = binomial(link = "logit"), data = simdata)
+  ps <- expit(predict(psmod))
+  iptw <- 1/ps*simdata$D+1/(1-ps)*(1-simdata$D)
+  
+  # #number of observations per individual
+  # obs_per_id <- simdata %>% count(id)
+  
+  beta1_iptw_notrim <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = iptw))$coef[1,1]
+  
+  fiptiw <- iptw*iiw
+  beta1_fiptiw_notrim <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = fiptiw))$coef[1,1]
+  
+  
+  beta1_indtrimmed_vec <- c()
+  beta1_trimmed_vec <- c()
+  
+  thres_iiw <- quantile(iiw, seq(0.5, 1, by = 0.01))
+  thres_iptw <- quantile(iptw, seq(0.5, 1, by = 0.01))
+  thres_fiptiw <- quantile(fiptiw, seq(0.5, 1, by = 0.01))
+  
+  
+  
+  for(i in 1:51){
+    # for each percentile from 50 to 100 (no trimming)
+    iiw_trimmed <- iiw
+    iptw_trimmed <- iptw
+    fiptiw_trimmed <- fiptiw
+    
+    # trim the IIW and IPTW weights individually, multiply them, calculate beta
+    iiw_trimmed[iiw_trimmed > thres_iiw[i]] <- thres_iiw[i]
+    iptw_trimmed[iptw_trimmed > thres_iptw[i]] <- thres_iptw[i]
+    
+    fiptiw_indtrimmed <-  iiw_trimmed* iptw_trimmed
+    
+    # trim the FIPTIW weights, calculate beta
+    fiptiw_trimmed[fiptiw_trimmed > thres_fiptiw[i]] <- thres_fiptiw[i]
+    
+    beta1_indtrimmed <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = fiptiw_indtrimmed))$coef[1,1]
+    beta1_trimmed <- summary(glm(y ~ D + offset(2-time) - 1, data=simdata, weights = fiptiw_trimmed))$coef[1,1]  
+    
+    beta1_indtrimmed_vec <- c(beta1_indtrimmed_vec, beta1_indtrimmed)
+    beta1_trimmed_vec <- c(beta1_trimmed_vec, beta1_trimmed)
+  }
+  
+  names(beta1_indtrimmed_vec) <- c(50:100)
+  names(beta1_trimmed_vec) <- c(50:100)
+  
+  proportion_raw_greater_than_5_fiptiw <- sum(fiptiw > 5)/length(fiptiw)
+  proportion_raw_greater_than_10_fiptiw <- sum(fiptiw > 10)/length(fiptiw)
+  proportion_raw_greater_than_20_fiptiw <- sum(fiptiw > 20)/length(fiptiw)
+  maxweight_fiptiw <- max(fiptiw)
+  
+  proportion_raw_greater_than_5_iiw <- sum(iiw > 5)/length(iiw)
+  proportion_raw_greater_than_10_iiw <- sum(iiw > 10)/length(iiw)
+  proportion_raw_greater_than_20_iiw <- sum(iiw > 20)/length(iiw)
+  maxweight_iiw <- max(iiw)
+  
+  proportion_raw_greater_than_5_iptw <- sum(iptw > 5)/length(iptw)
+  proportion_raw_greater_than_10_iptw <- sum(iptw > 10)/length(iptw)
+  proportion_raw_greater_than_20_iptw <- sum(iptw > 20)/length(iptw)
+  maxweight_iptw <- max(iptw)
+  
+  
+  #find optimal cutpoint?
+  
+  out <- list(beta1_indtrimmed_vec, beta1_trimmed_vec, 
+              proportion_raw_greater_than_5_fiptiw, proportion_raw_greater_than_10_fiptiw, 
+              proportion_raw_greater_than_20_fiptiw, proportion_raw_greater_than_5_iiw, 
+              proportion_raw_greater_than_10_iiw, 
+              proportion_raw_greater_than_20_iiw, proportion_raw_greater_than_5_iptw, 
+              proportion_raw_greater_than_10_iptw, 
+              proportion_raw_greater_than_20_iptw,
+              maxweight_fiptiw, maxweight_iiw, maxweight_iptw)
+  names(out) <- c("TrimmedFirst", "TrimmedAfterMult",
+                  'proportion_raw_greater_than_5_fiptiw', 'proportion_raw_greater_than_10_fiptiw', 
+                  'proportion_raw_greater_than_20_fiptiw', 'proportion_raw_greater_than_5_iiw', 
+                  'proportion_raw_greater_than_10_iiw', 
+                  'proportion_raw_greater_than_20_iiw', 'proportion_raw_greater_than_5_iptw', 
+                  'proportion_raw_greater_than_10_iptw', 'proportion_raw_greater_than_20_iptw',
+                  'maxweight_fiptiw', 'maxweight_iiw', 'maxweight_iptw')
+  
+  return(out)
+  
+}
+
+
+
+simulateResultsWeightTrimming <- function(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3, 
+                                           alpha0, alpha1, tau, baseline){
+  #for a given scheme, simulates N realizations and aggregates results
+  
+  resultsmat_trimmedfirst <- matrix(data = NA, nrow = N, ncol = 51)
+  resultsmat_trimmedaftermult <- matrix(data = NA, nrow = N, ncol = 51)
+  
+  other_fiptiw <- matrix(data = NA, nrow = N, ncol = 4)
+  other_iiw <- matrix(data = NA, nrow = N, ncol = 4)
+  other_iptw <- matrix(data = NA, nrow = N, ncol = 4)
+  
+  
+  
+  for(i in 1:N){
+    if(i %% 100 == 0){print(i)}
+    
+    simrun <- simulateOneWeightTrimming(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, 
+                                     alpha0, alpha1, tau, baseline)
+    resultsmat_trimmedfirst[i,] <- simrun$TrimmedFirst
+    resultsmat_trimmedaftermult[i,] <- simrun$TrimmedAfterMult
+    
+    other_fiptiw[i,] <- c(simrun$proportion_raw_greater_than_5_fiptiw, simrun$proportion_raw_greater_than_10_fiptiw, 
+                                simrun$proportion_raw_greater_than_20_fiptiw, simrun$maxweight_fiptiw)
+    other_iiw[i,] <- c(simrun$proportion_raw_greater_than_5_iiw, simrun$proportion_raw_greater_than_10_iiw, 
+                         simrun$proportion_raw_greater_than_20_iiw, simrun$maxweight_iiw)
+    other_iptw[i,] <- c(simrun$proportion_raw_greater_than_5_iptw, simrun$proportion_raw_greater_than_10_iptw, 
+                         simrun$proportion_raw_greater_than_20_iptw, simrun$maxweight_iptw)
+  }
+  
+  
+  
+  colnames(resultsmat_trimmedfirst) <- c(50:100)
+  colnames(resultsmat_trimmedaftermult) <- c(50:100)
+  
+  bias_beta1_trimmedfirst <- round(apply(resultsmat_trimmedfirst, FUN =  mean, MARGIN = 2)  - beta1 , 3)
+  bias_beta1_trimmedaftermult <- round(apply(resultsmat_trimmedaftermult, FUN =  mean, MARGIN = 2)  - beta1 , 3)
+  
+  biasmat <- cbind( bias_beta1_trimmedfirst, bias_beta1_trimmedaftermult)
+  
+  
+  var_beta1_trimmedfirst <- round(apply(resultsmat_trimmedfirst, FUN = var, MARGIN = 2), 5)
+  var_beta1_trimmedaftermult <- round(apply(resultsmat_trimmedaftermult, FUN = var, MARGIN = 2), 5)
+  
+  varmat<- cbind(var_beta1_trimmedfirst, var_beta1_trimmedaftermult)
+  
+  
+  mse_beta1_trimmedfirst <- round(apply((resultsmat_trimmedfirst - beta1)^2, FUN = mean, MARGIN = 2), 3)
+  mse_beta1_trimmedaftermult <- round(apply((resultsmat_trimmedaftermult - beta1)^2, FUN = mean, MARGIN = 2), 3)
+  
+  msemat<- cbind( mse_beta1_trimmedfirst, mse_beta1_trimmedaftermult)
+  
+  
+  othermat_fiptiw <- round(apply(other_fiptiw, FUN =  mean, MARGIN = 2), 4)
+  names(othermat_fiptiw) <- c("mean_propweightgreaterthan5", "mean_propweightgreaterthan10",
+                       "mean_propweightgreaterthan20", "mean_maxweight")
+  othermat_iiw <- round(apply(other_iiw, FUN =  mean, MARGIN = 2), 4)
+  names(othermat_iiw) <- c("mean_propweightgreaterthan5", "mean_propweightgreaterthan10",
+                             "mean_propweightgreaterthan20", "mean_maxweight")
+  othermat_iptw <- round(apply(other_iptw, FUN =  mean, MARGIN = 2), 4)
+  names(othermat_iptw) <- c("mean_propweightgreaterthan5", "mean_propweightgreaterthan10",
+                             "mean_propweightgreaterthan20", "mean_maxweight")
+  
+  
+  out <- list(biasmat, varmat, msemat,
+              othermat_fiptiw, othermat_iiw, othermat_iptw)
+  
+  names(out) <- c('biasmat', 'varmat', 'msemat',
+                  'othermat_fiptiw', 'othermat_iiw', 'othermat_iptw')
+  
+  return(out)
+}
+
+
+
+simulateResultsWeightTrimming_misspec <- function(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3, 
+                                          alpha0, alpha1, tau, baseline){
+  #for a given scheme, simulates N realizations and aggregates results
+  
+  resultsmat_trimmedfirst <- matrix(data = NA, nrow = N, ncol = 51)
+  resultsmat_trimmedaftermult <- matrix(data = NA, nrow = N, ncol = 51)
+  
+  other_fiptiw <- matrix(data = NA, nrow = N, ncol = 4)
+  other_iiw <- matrix(data = NA, nrow = N, ncol = 4)
+  other_iptw <- matrix(data = NA, nrow = N, ncol = 4)
+  
+  
+  
+  for(i in 1:N){
+    if(i %% 100 == 0){print(i)}
+    
+    simrun <- simulateOneWeightTrimming_misspec( n, beta1, beta2, beta3, 
+                                                 gamma1, gamma2, gamma3, gamma4, gamma5, gamma6, 
+                                                 alpha0, alpha1, alpha2, alpha3,
+                                                 tau, IIWtype, IPTWtype)
+    resultsmat_trimmedfirst[i,] <- simrun$TrimmedFirst
+    resultsmat_trimmedaftermult[i,] <- simrun$TrimmedAfterMult
+    
+    other_fiptiw[i,] <- c(simrun$proportion_raw_greater_than_5_fiptiw, simrun$proportion_raw_greater_than_10_fiptiw, 
+                         simrun$proportion_raw_greater_than_20_fiptiw, simrun$maxweight_fiptiw)
+    other_iiw[i,] <- c(simrun$proportion_raw_greater_than_5_iiw, simrun$proportion_raw_greater_than_10_iiw, 
+                       simrun$proportion_raw_greater_than_20_iiw, simrun$maxweight_iiw)
+    other_iptw[i,] <- c(simrun$proportion_raw_greater_than_5_iptw, simrun$proportion_raw_greater_than_10_iptw, 
+                        simrun$proportion_raw_greater_than_20_iptw, simrun$maxweight_iptw)
+  }
+  
+  
+  
+  colnames(resultsmat_trimmedfirst) <- c(50:100)
+  colnames(resultsmat_trimmedaftermult) <- c(50:100)
+  
+  bias_beta1_trimmedfirst <- round(apply(resultsmat_trimmedfirst, FUN =  mean, MARGIN = 2)  - beta1 , 3)
+  bias_beta1_trimmedaftermult <- round(apply(resultsmat_trimmedaftermult, FUN =  mean, MARGIN = 2)  - beta1 , 3)
+  
+  biasmat <- cbind( bias_beta1_trimmedfirst, bias_beta1_trimmedaftermult)
+  
+  
+  var_beta1_trimmedfirst <- round(apply(resultsmat_trimmedfirst, FUN = var, MARGIN = 2), 3)
+  var_beta1_trimmedaftermult <- round(apply(resultsmat_trimmedaftermult, FUN = var, MARGIN = 2), 3)
+  
+  varmat<- cbind(var_beta1_trimmedfirst, var_beta1_trimmedaftermult)
+  
+  
+  mse_beta1_trimmedfirst <- round(apply((resultsmat_trimmedfirst - beta1)^2, FUN = mean, MARGIN = 2), 3)
+  mse_beta1_trimmedaftermult <- round(apply((resultsmat_trimmedaftermult - beta1)^2, FUN = mean, MARGIN = 2), 3)
+  
+  msemat<- cbind( mse_beta1_trimmedfirst, mse_beta1_trimmedaftermult)
+  
+  
+  othermat_fiptiw <- round(apply(other_fiptiw, FUN =  mean, MARGIN = 2), 3)
+  names(othermat_fiptiw) <- c("mean_propweightgreaterthan5", "mean_propweightgreaterthan10",
+                             "mean_propweightgreaterthan20", "mean_maxweight")
+  othermat_iiw <- round(apply(other_iiw, FUN =  mean, MARGIN = 2), 3)
+  names(othermat_iiw) <- c("mean_propweightgreaterthan5", "mean_propweightgreaterthan10",
+                           "mean_propweightgreaterthan20", "mean_maxweight")
+  othermat_iptw <- round(apply(other_iptw, FUN =  mean, MARGIN = 2), 3)
+  names(othermat_iptw) <- c("mean_propweightgreaterthan5", "mean_propweightgreaterthan10",
+                            "mean_propweightgreaterthan20", "mean_maxweight")
+  
+  
+  out <- list(biasmat, varmat, msemat,
+              othermat_fiptiw, othermat_iiw, othermat_iptw)
+  
+  names(out) <- c('biasmat', 'varmat', 'msemat',
+                  'othermat_fiptiw', 'othermat_iiw', 'othermat_iptw')
+  
+  return(out)
+}
+
+
+
+
+
