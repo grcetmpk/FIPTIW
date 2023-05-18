@@ -173,11 +173,11 @@ alpha1 = 0
 tau = 7
 N = 1000
 
-varsel_timevar_n500 <- simulateALLVarSel(N, n, beta1, beta2vec, beta3, 
-                                         gamma1, gamma2vec, gamma3, alpha0, alpha1, tau,
-                                         inParallel = T, nclusters = nclusters)
-saveRDS(varsel_n500, "varsel_timevar_n1000.rds")
-
+# varsel_timevar_n500 <- simulateALLVarSel(N, n, beta1, beta2vec, beta3,
+#                                          gamma1, gamma2vec, gamma3, alpha0, alpha1, tau,
+#                                          inParallel = T, nclusters = nclusters)
+# saveRDS(varsel_n500, "varsel_n500.rds")
+varsel_n500 <- readRDS("varsel_n500.rds")
 kable(varsel_n500$resultsmat_beta01, booktabs = T, digits = 2,format = "latex") %>%
   add_header_above(c(" " = 3, "Variables used to estimate intensity" = 8))
 
@@ -281,7 +281,7 @@ eta2vec = c(0, -0.2, -0.5)
 
 results_censoring_n500 <- readRDS("results_censoring_n500.rds")
 
-kable(results_censoring_n500$resultsmat, booktabs = T, digits = 3,format = "latex") %>%
-  add_header_above(c(" " = 3, "Unweighted" = 3, "IIW" = 3, "IPTW" = 3, "FIPTIW" = 3))
+kable(results_censoring_n500$resultsmat[, c(1,2,3, 4,6,7,9,10,12, 13, 15)], booktabs = T, digits = 3,format = "latex") %>%
+  add_header_above(c(" " = 3, "Unweighted" = 2, "IIW" = 2, "IPTW" = 2, "FIPTIW" = 2))
 
 
