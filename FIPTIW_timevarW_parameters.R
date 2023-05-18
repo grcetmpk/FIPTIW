@@ -24,7 +24,6 @@
 # N: number of simulations
 #
 
-setwd("C:\\Users\\grace\\Documents\\WaterlooPHD\\Research\\IIW_Simulation\\FIPTIW\\Simulation1")
 source("FIPTIW_timevarW_functions.R")
 
 # parallelization stuff
