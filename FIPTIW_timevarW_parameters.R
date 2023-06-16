@@ -24,7 +24,7 @@
 # N: number of simulations
 #
 
-setwd("C:\\Users\\grace\\Documents\\WaterlooPHD\\Research\\IIW_Simulation\\FIPTIW\\Simulation1")
+# setwd("C:\\Users\\grace\\Documents\\WaterlooPHD\\Research\\IIW_Simulation\\FIPTIW\\Simulation1")
 source("FIPTIW_timevarW_functions.R")
 
 # parallelization stuff
@@ -320,26 +320,26 @@ kable(results_censoring_n100_ipcw$resultsmat[, c(1,2,3, 4,6,7,9,10,12, 13, 15, 1
 
 ##### n = 50
 
-set.seed(3028)
-n = 50
-beta1 = 0.5
-beta2 = 2
-beta3 = 1
-gamma1 = 0.5
-gamma2 = 0.3
-gamma3 = 0.6
-alpha0 = -1
-alpha1 = 1
-tau = 7
-N = 1000
-censinform = F
-eta1vec = c(0, 0.1, 0.4)
-eta2vec = c(0, 0.2, 0.5)
-eta3vec = c(0, 0.4, 0.6)
-
-results_censoring_n50_ipcw <- simulateALLFIPTICW_CENS(N, n, beta1, beta2, beta3, gamma1,
-                                                 gamma2vec, gamma3vec, alpha0, alpha1, tau, outputfulldatalist = F,
-                                                 censinform = T, eta1, eta2, eta3)
+# set.seed(3028)
+# n = 50
+# beta1 = 0.5
+# beta2 = 2
+# beta3 = 1
+# gamma1 = 0.5
+# gamma2 = 0.3
+# gamma3 = 0.6
+# alpha0 = -1
+# alpha1 = 1
+# tau = 7
+# N = 1000
+# censinform = F
+# eta1vec = c(0, 0.1, 0.4)
+# eta2vec = c(0, 0.2, 0.5)
+# eta3vec = c(0, 0.4, 0.6)
+# 
+# results_censoring_n50_ipcw <- simulateALLFIPTICW_CENS(N, n, beta1, beta2, beta3, gamma1,
+#                                                  gamma2vec, gamma3vec, alpha0, alpha1, tau, outputfulldatalist = F,
+#                                                  censinform = T, eta1, eta2, eta3)
 saveRDS(results_censoring_n50_ipcw, "results_censoring_n50_ipcw.rds")
 results_censoring_n50_ipcw <- readRDS("results_censoring_n50_ipcw.rds")
 
