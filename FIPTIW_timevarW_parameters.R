@@ -24,7 +24,7 @@
 # N: number of simulations
 #
 
-# setwd("C:\\Users\\grace\\Documents\\WaterlooPHD\\Research\\IIW_Simulation\\FIPTIW\\Simulation1")
+setwd("C:\\Users\\grace\\Documents\\WaterlooPHD\\Research\\IIW_Simulation\\FIPTIW\\Simulation1")
 source("FIPTIW_timevarW_functions.R")
 
 # parallelization stuff
@@ -33,7 +33,6 @@ nclusters <- makeCluster(ncores)
 
 require(knitr)
 require(kableExtra)
-require(ggplot2)
 
 
 #~~~~~~~~~~ FIPTIW simulation, assumptions satisfied (not shown in paper).
@@ -175,11 +174,10 @@ alpha1 = 0
 tau = 7
 N = 1000
 
-
-# varsel_timevar_n500 <- simulateALLVarSel(N, n, beta1, beta2vec, beta3, 
-                                         # gamma1, gamma2vec, gamma3, alpha0, alpha1, tau,
-                                         # inParallel = T, nclusters = nclusters)
-# saveRDS(varsel_n500, "varsel_timevar_n1000.rds")
+varsel_timevar_n500 <- simulateALLVarSel(N, n, beta1, beta2vec, beta3, 
+                                         gamma1, gamma2vec, gamma3, alpha0, alpha1, tau,
+                                         inParallel = T, nclusters = nclusters)
+saveRDS(varsel_n500, "varsel_timevar_n1000.rds")
 
 kable(varsel_n500$resultsmat_beta01, booktabs = T, digits = 2,format = "latex") %>%
   add_header_above(c(" " = 3, "Variables used to estimate intensity" = 8))
@@ -291,27 +289,27 @@ kable(varsel_n500$resultsmat_beta01, booktabs = T, digits = 2,format = "latex") 
 
 #### n = 100
 
-set.seed(234324)
-n = 100
-beta1 = 0.5
-beta2 = 2
-beta3 = 1
-gamma1 = 0.5
-gamma2 = 0.3
-gamma3 = 0.6
-alpha0 = -1
-alpha1 = 1
-tau = 7
-N = 1000
-censinform = F
-eta1vec = c(0.4)
-eta2vec = c(0, 0.2, 0.5)
-eta3vec = c(0, 0.4, 0.6)
-
+# set.seed(234324)
+# n = 100
+# beta1 = 0.5
+# beta2 = 2
+# beta3 = 1
+# gamma1 = 0.5
+# gamma2 = 0.3
+# gamma3 = 0.6
+# alpha0 = -1
+# alpha1 = 1
+# tau = 7
+# N = 1000
+# censinform = F 
+# eta1vec = c(0, 0.1, 0.4)
+# eta2vec = c(0, 0.2, 0.5)
+# eta3vec = c(0, 0.4, 0.6)
+# 
 # results_censoring_n100_ipcw <- simulateALLFIPTICW_CENS(N, n, beta1, beta2, beta3, gamma1,
-#                                                  gamma2vec, gamma3vec, alpha0, alpha1, tau, outputfulldatalist = T,
+#                                                  gamma2vec, gamma3vec, alpha0, alpha1, tau, outputfulldatalist = F,
 #                                                  censinform = T, eta1, eta2, eta3)
-# saveRDS(results_censoring_n100_ipcw, "results_censoring_n100_ipcw.rds")
+saveRDS(results_censoring_n100_ipcw, "results_censoring_n100_ipcw.rds")
 results_censoring_n100_ipcw <- readRDS("results_censoring_n100_ipcw.rds")
 
 kable(results_censoring_n100_ipcw$resultsmat[, c(1,2,3, 4,6,7,9,10,12, 13, 15, 16, 18)], booktabs = T, 
@@ -335,14 +333,14 @@ alpha1 = 1
 tau = 7
 N = 1000
 censinform = F
-eta1vec = c(0.4)
+eta1vec = c(0, 0.1, 0.4)
 eta2vec = c(0, 0.2, 0.5)
 eta3vec = c(0, 0.4, 0.6)
 
-# results_censoring_n50_ipcw <- simulateALLFIPTICW_CENS(N, n, beta1, beta2, beta3, gamma1,
-#                                                  gamma2vec, gamma3vec, alpha0, alpha1, tau, outputfulldatalist = T,
-#                                                  censinform = T, eta1, eta2, eta3)
-# saveRDS(results_censoring_n50_ipcw, "results_censoring_n50_ipcw.rds")
+results_censoring_n50_ipcw <- simulateALLFIPTICW_CENS(N, n, beta1, beta2, beta3, gamma1,
+                                                 gamma2vec, gamma3vec, alpha0, alpha1, tau, outputfulldatalist = F,
+                                                 censinform = T, eta1, eta2, eta3)
+saveRDS(results_censoring_n50_ipcw, "results_censoring_n50_ipcw.rds")
 results_censoring_n50_ipcw <- readRDS("results_censoring_n50_ipcw.rds")
 
 kable(results_censoring_n50_ipcw$resultsmat[, c(1,2,3, 4,6,7,9,10,12, 13, 15, 16, 18)], booktabs = T, 
@@ -366,17 +364,17 @@ alpha1 = 1
 tau = 7
 N = 1000
 censinform = F
-eta1vec = c(0.4)
+eta1vec = c(0, 0.1, 0.4)
 eta2vec = c(0, 0.2, 0.5)
 eta3vec = c(0, 0.4, 0.6)
 
-# results_censoring_n500_ipcw <- simulateALLFIPTICW_CENS(N, n, beta1, beta2, beta3, gamma1,
-#                                                       gamma2vec, gamma3vec, alpha0, alpha1, tau, outputfulldatalist = T,
-#                                                       censinform = T, eta1, eta2, eta3)
-# saveRDS(results_censoring_n500_ipcw, "results_censoring_n500_ipcw.rds")
-results_censoring_n500_ipcw <- readRDS("results_censoring_n500_ipcw.rds")
+results_censoring_n500_ipcw <- simulateALLFIPTICW_CENS(N, n, beta1, beta2, beta3, gamma1,
+                                                      gamma2vec, gamma3vec, alpha0, alpha1, tau, outputfulldatalist = F,
+                                                      censinform = T, eta1, eta2, eta3)
+saveRDS(results_censoring_n500_ipcw, "results_censoring_n500_ipcw.rds")
+results_censoring_n500_ipcw <- readRDS("results_censoring_n50 fdswjhmv c0_ipcw.rds")
 
-kable(results_censoring_n500_ipcw$resultsmat[, c(1,2,3, 4,6,7,9,10,12, 13, 15, 16, 18)], booktabs = T, 
+kable(results_censoring_n50_ipcw$resultsmat[, c(1,2,3, 4,6,7,9,10,12, 13, 15, 16, 18)], booktabs = T, 
       digits = 3,format = "latex") %>%
   add_header_above(c(" " = 3, "Unweighted" = 2, "IIW" = 2, "IPTW" = 2, "FIPTIW" = 2, "FIPTICW" = 2))
 
