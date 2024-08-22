@@ -1,5 +1,6 @@
 
 #~~~~~~~~~~~~~~~~~~ SIMULATiONS I and II ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+######~~~~~~~~~~~~~~CONTINUOUS OUTCOME~~~~~~~~~~~~~~~~~~~~~~~~~~~#####
 
 # G: Treatment assignment indicator
 # W: Treatment confounder
@@ -23,8 +24,6 @@
 # tau: maximum follow up time, independent censoring.
 # N: number of simulations
 #
-
-setwd("C:\\Users\\grace\\Documents\\WaterlooPHD\\Research\\IIW_Simulation\\FIPTIW\\Simulation1")
 source("FIPTIW_timevarW_functions.R")
 
 # parallelization stuff
@@ -35,84 +34,84 @@ require(knitr)
 require(kableExtra)
 
 
-#~~~~~~~~~~ FIPTIW simulation, assumptions satisfied (not shown in paper).
-
-#### n = 100 ###
-
-set.seed(500)
-n = 100
-beta1 = 0.5
-beta2 = 2
-beta3 = 1
-gamma1 = 0.5
-gamma2vec = c(0, 0.3)
-gamma3vec = c(0, 0.6)
-alpha0 = -1
-alpha1vec = c(0, 1, 3)
-tau = 7
-N = 1000
-
-# resultsFIPTIW_n100 <- simulateALLFIPTIW(N, n, beta1, beta2, beta3, gamma1, gamma2vec, gamma3vec, 
-#                                                         alpha0, alpha1vec, tau, outputfulldatalist = FALSE)
-# saveRDS(resultsFIPTIW_n100, "resultsFIPTIW_n100.rds")
-resultsFIPTIW_n100 <- readRDS("resultsFIPTIW_n100.rds")
-
-kable(resultsFIPTIW_n100$resultsmat, booktabs = T, digits = 3,format = "latex") %>%
-  add_header_above(c(" " = 3, "Unweighted" = 3, "IIW" = 3, "IPTW" = 3, "FIPTIW" = 3))
-
-
-
-
-### n = 50 ###
-
-set.seed(6234)
-n = 50
-beta1 = 0.5
-beta2 = 2
-beta3 = 1
-gamma1 = 0.5
-gamma2vec = c(0, 0.3)
-gamma3vec = c(0, 0.6)
-alpha0 = -1
-alpha1vec = c(0, 1, 3)
-tau = 7
-N = 1000
-
-# resultsFIPTIW_n50 <- simulateALLFIPTIW(N, n, beta1, beta2, beta3, gamma1, gamma2vec, gamma3vec, 
-#                                                        alpha0, alpha1vec, tau, outputfulldatalist = FALSE)
-#saveRDS(resultsFIPTIW_n50, "resultsFIPTIW_n50.rds")
-resultsFIPTIW_n50 <- readRDS("resultsFIPTIW_n50.rds")
-
-kable(resultsFIPTIW_n50$resultsmat, booktabs = T, digits = 3,format = "latex") %>%
-  add_header_above(c(" " = 3, "Unweighted" = 3, "IIW" = 3, "IPTW" = 3, "FIPTIW" = 3))
-
-
-
-### n = 500 ###
-
-
-set.seed(23424)
-n = 500
-beta1 = 0.5
-beta2 = 2
-beta3 = 1
-gamma1 = 0.5
-gamma2vec = c(0, 0.3)
-gamma3vec = c(0, 0.6)
-alpha0 = -1
-alpha1vec = c(0, 1, 3)
-tau = 7
-N = 1000
-
-# resultsFIPTIW_n500 <- simulateALLFIPTIW(N, n, beta1, beta2, beta3, gamma1, gamma2vec, gamma3vec, 
-#                                                         alpha0, alpha1vec, tau, outputfulldatalist = FALSE)
-# saveRDS(resultsFIPTIW_n500, "resultsFIPTIW_n500.rds")
-resultsFIPTIW_n500 <- readRDS("resultsFIPTIW_n500.rds")
-
-kable(resultsFIPTIW_n500$resultsmat, booktabs = T, digits = 3,format = "latex") %>%
-  add_header_above(c(" " = 3, "Unweighted" = 3, "IIW" = 3, "IPTW" = 3, "FIPTIW" = 3))
-
-
+# #~~~~~~~~~~ FIPTIW simulation, assumptions satisfied (not shown in paper).
+# 
+# #### n = 100 ###
+# 
+# set.seed(500)
+# n = 100
+# beta1 = 0.5
+# beta2 = 2
+# beta3 = 1
+# gamma1 = 0.5
+# gamma2vec = c(0, 0.3)
+# gamma3vec = c(0, 0.6)
+# alpha0 = -1
+# alpha1vec = c(0, 1, 3)
+# tau = 7
+# N = 1000
+# 
+# # resultsFIPTIW_n100 <- simulateALLFIPTIW(N, n, beta1, beta2, beta3, gamma1, gamma2vec, gamma3vec,
+# #                                                         alpha0, alpha1vec, tau, outputfulldatalist = FALSE)
+# # saveRDS(resultsFIPTIW_n100, "resultsFIPTIW_n100.rds")
+# resultsFIPTIW_n100 <- readRDS("resultsFIPTIW_n100.rds")
+# 
+# kable(resultsFIPTIW_n100$resultsmat, booktabs = T, digits = 3,format = "latex") %>%
+#   add_header_above(c(" " = 3, "Unweighted" = 3, "IIW" = 3, "IPTW" = 3, "FIPTIW" = 3))
+# 
+# 
+# 
+# 
+# ### n = 50 ###
+# 
+# set.seed(6234)
+# n = 50
+# beta1 = 0.5
+# beta2 = 2
+# beta3 = 1
+# gamma1 = 0.5
+# gamma2vec = c(0, 0.3)
+# gamma3vec = c(0, 0.6)
+# alpha0 = -1
+# alpha1vec = c(0, 1, 3)
+# tau = 7
+# N = 1000
+# 
+# # resultsFIPTIW_n50 <- simulateALLFIPTIW(N, n, beta1, beta2, beta3, gamma1, gamma2vec, gamma3vec, 
+# #                                                        alpha0, alpha1vec, tau, outputfulldatalist = FALSE)
+# #saveRDS(resultsFIPTIW_n50, "resultsFIPTIW_n50.rds")
+# resultsFIPTIW_n50 <- readRDS("resultsFIPTIW_n50.rds")
+# 
+# kable(resultsFIPTIW_n50$resultsmat, booktabs = T, digits = 3,format = "latex") %>%
+#   add_header_above(c(" " = 3, "Unweighted" = 3, "IIW" = 3, "IPTW" = 3, "FIPTIW" = 3))
+# 
+# 
+# 
+# ### n = 500 ###
+# 
+# 
+# set.seed(23424)
+# n = 500
+# beta1 = 0.5
+# beta2 = 2
+# beta3 = 1
+# gamma1 = 0.5
+# gamma2vec = c(0, 0.3)
+# gamma3vec = c(0, 0.6)
+# alpha0 = -1
+# alpha1vec = c(0, 1, 3)
+# tau = 7
+# N = 1000
+# 
+# # resultsFIPTIW_n500 <- simulateALLFIPTIW(N, n, beta1, beta2, beta3, gamma1, gamma2vec, gamma3vec, 
+# #                                                         alpha0, alpha1vec, tau, outputfulldatalist = FALSE)
+# # saveRDS(resultsFIPTIW_n500, "resultsFIPTIW_n500.rds")
+# resultsFIPTIW_n500 <- readRDS("resultsFIPTIW_n500.rds")
+# 
+# kable(resultsFIPTIW_n500$resultsmat, booktabs = T, digits = 3,format = "latex") %>%
+#   add_header_above(c(" " = 3, "Unweighted" = 3, "IIW" = 3, "IPTW" = 3, "FIPTIW" = 3))
+# 
+# 
 
 
 
@@ -124,7 +123,7 @@ beta1 = 0.5
 beta2vec = c(0, 2)
 beta3 = 1
 gamma1 = 0.5
-gamma2vec = c(0, 0.3)
+gamma2vec = c(0, 0.3, 0.6)
 gamma3 = 0.6
 alpha0 = 0
 alpha1 = 0
@@ -146,15 +145,15 @@ beta1 = 0.5
 beta2vec = c(0, 2)
 beta3 = 1
 gamma1 = 0.5
-gamma2vec = c(0, 0.3)
+gamma2vec = c(0, 0.3, 0.6)
 gamma3 = 0.6
 alpha0 = 0
 alpha1 = 0
 tau = 7
 N = 1000
-
+# 
 # varsel_n50 <- simulateALLVarSel(N, n, beta1, beta2vec, beta3, gamma1, gamma2vec, gamma3, alpha0, alpha1, tau)
-#saveRDS(varsel_n50, "varsel_n50.rds")
+# saveRDS(varsel_n50, "varsel_n50.rds")
 varsel_n50 <- readRDS("varsel_n50.rds")
 kable(varsel_n50$resultsmat_beta01, booktabs = T, digits = 2,format = "latex") %>%
   add_header_above(c(" " = 3, "Variables used to estimate intensity" = 8))
@@ -167,16 +166,16 @@ beta1 = 0.5
 beta2vec = c(0, 2)
 beta3 = 1
 gamma1 = 0.5
-gamma2vec = c(0, 0.3)
+gamma2vec = c(0, 0.3, 0.6)
 gamma3 = 0.6
 alpha0 = 0
 alpha1 = 0
 tau = 7
 N = 1000
-
-varsel_timevar_n500 <- simulateALLVarSel(N, n, beta1, beta2vec, beta3, 
-                                         gamma1, gamma2vec, gamma3, alpha0, alpha1, tau,
-                                         inParallel = T, nclusters = nclusters)
+# 
+varsel_timevar_n500 <- simulateALLVarSel(N, n, beta1, beta2vec, 
+                                         beta3, gamma1, gamma2vec, gamma3, alpha0, alpha1, tau, 
+                                         inParallel = T, nclusters)
 saveRDS(varsel_n500, "varsel_timevar_n1000.rds")
 
 kable(varsel_n500$resultsmat_beta01, booktabs = T, digits = 2,format = "latex") %>%

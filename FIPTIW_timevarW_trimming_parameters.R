@@ -89,8 +89,8 @@ p1_lowIPTW_lowIIW <- ggplot(resultsmat_lowIPTW_lowIIW, aes(x = Percentile, y = B
   xlab("Threshold (Percentile)") +
   ylab("Rel. Bias")+
   ylim(-0.3, 0.9) +
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 ### Variance plots
 
@@ -100,8 +100,8 @@ p2_lowIPTW_lowIIW<- ggplot(resultsmat_lowIPTW_lowIIW, aes(x = Percentile, y = Va
   theme(legend.title=element_blank())+
   xlab("Threshold (Percentile)")+
   ylim(0.015, 0.03)+
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 ### MSE plots
 
@@ -112,8 +112,8 @@ p3_lowIPTW_lowIIW <- ggplot(resultsmat_lowIPTW_lowIIW, aes(x = Percentile, y = M
   theme(legend.title=element_blank()) +
   xlab("Threshold (Percentile)")+
   ylim(0, 0.2)+
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 
 combined_lowIPTW_lowIIW <- p1_lowIPTW_lowIIW + p2_lowIPTW_lowIIW + p3_lowIPTW_lowIIW & theme(legend.position = "bottom")
@@ -190,8 +190,8 @@ p1_moderateIPTW_lowIIW<- ggplot(resultsmat_moderateIPTW_lowIIW, aes(x = Percenti
   xlab("Threshold (Percentile)") +
   ylab("Rel. Bias")+
   ylim(-0.3, 0.9) +
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 
 ### Variance plots
@@ -201,8 +201,8 @@ p2_moderateIPTW_lowIIW<- ggplot(resultsmat_moderateIPTW_lowIIW, aes(x = Percenti
   theme(legend.title=element_blank())+
   xlab("Threshold (Percentile)")+
   ylim(0.015, 0.03)+
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 
 
@@ -213,8 +213,8 @@ p3_moderateIPTW_lowIIW <- ggplot(resultsmat_moderateIPTW_lowIIW, aes(x = Percent
   theme(legend.title=element_blank()) +
   xlab("Threshold (Percentile)")+
   ylim(0, 0.2)+
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 
 combined_moderateIPTW_lowIIW <- p1_moderateIPTW_lowIIW + p2_moderateIPTW_lowIIW + p3_moderateIPTW_lowIIW & theme(legend.position = "bottom")
@@ -301,8 +301,8 @@ p1_highIPTW_lowIIW <- ggplot(resultsmat_highIPTW_lowIIW, aes(x = Percentile, y =
   xlab("Threshold (Percentile)") +
   ylab("Rel. Bias") +
   ylim(-0.3, 0.9) +
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 ### Variance plots
 p2_highIPTW_lowIIW <- ggplot(resultsmat_highIPTW_lowIIW, aes(x = Percentile, y = Variance, color = Group, shape = Group)) + 
@@ -311,8 +311,8 @@ p2_highIPTW_lowIIW <- ggplot(resultsmat_highIPTW_lowIIW, aes(x = Percentile, y =
   theme(legend.title=element_blank())+
   xlab("Threshold (Percentile)")+
   ylim(0.015, 0.03)+
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 
 
@@ -323,8 +323,8 @@ p3_highIPTW_lowIIW <- ggplot(resultsmat_highIPTW_lowIIW, aes(x = Percentile, y =
   theme(legend.title=element_blank()) +
   xlab("Threshold (Percentile)")+
   ylim(0, 0.2)+
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 
 combined_highIPTW_lowIIW <- p1_highIPTW_lowIIW + p2_highIPTW_lowIIW + p3_highIPTW_lowIIW & theme(legend.position = "bottom")
@@ -403,8 +403,8 @@ p1_lowIPTW_moderateIIW <- ggplot(resultsmat_lowIPTW_moderateIIW, aes(x = Percent
   xlab("Threshold (Percentile)")+
   ylab("Rel. Bias")+
   ylim(-0.3, 0.9)+
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 ### Variance plots
 p2_lowIPTW_moderateIIW <- ggplot(resultsmat_lowIPTW_moderateIIW, aes(x = Percentile, y = Variance, color = Group, shape = Group)) + 
@@ -413,8 +413,8 @@ p2_lowIPTW_moderateIIW <- ggplot(resultsmat_lowIPTW_moderateIIW, aes(x = Percent
   theme(legend.title=element_blank())+
   xlab("Threshold (Percentile)")+
   ylim(0.015, 0.03)+
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 
 ### MSE plots
@@ -424,8 +424,8 @@ p3_lowIPTW_moderateIIW <- ggplot(resultsmat_lowIPTW_moderateIIW, aes(x = Percent
   theme(legend.title=element_blank()) +
   xlab("Threshold (Percentile)")+
   ylim(0, 0.2)+
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 
 combined_lowIPTW_moderateIIW <- p1_lowIPTW_moderateIIW + p2_lowIPTW_moderateIIW + p3_lowIPTW_moderateIIW & theme(legend.position = "bottom")
@@ -505,8 +505,8 @@ p1_lowIPTW_highIIW <- ggplot(resultsmat_lowIPTW_highIIW, aes(x = Percentile, y =
   xlab("Threshold (Percentile)")+
   ylab("Rel. Bias")+
   ylim(-0.3, 0.9)+
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 ### Variance plots
 p2_lowIPTW_highIIW <- ggplot(resultsmat_lowIPTW_highIIW, aes(x = Percentile, y = Variance, color = Group, shape = Group)) + 
@@ -515,8 +515,8 @@ p2_lowIPTW_highIIW <- ggplot(resultsmat_lowIPTW_highIIW, aes(x = Percentile, y =
   theme(legend.title=element_blank())+
   xlab("Threshold (Percentile)")+
   ylim(0.015, 0.03)+
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 ### MSE plots
 p3_lowIPTW_highIIW <- ggplot(resultsmat_lowIPTW_highIIW, aes(x = Percentile, y = MSE, color = Group, shape = Group)) + 
@@ -525,8 +525,8 @@ p3_lowIPTW_highIIW <- ggplot(resultsmat_lowIPTW_highIIW, aes(x = Percentile, y =
   theme(legend.title=element_blank()) +
   xlab("Threshold (Percentile)")+
   ylim(0, 0.2)+
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 
 combined_lowIPTW_highIIW <- p1_lowIPTW_highIIW + p2_lowIPTW_highIIW + p3_lowIPTW_highIIW & theme(legend.position = "bottom")
@@ -606,8 +606,8 @@ p1_moderateIPTW_moderateIIW <- ggplot(resultsmat_moderateIPTW_moderateIIW, aes(x
   xlab("Threshold (Percentile)")+
   ylab("Rel. Bias")+
   ylim(-0.3, 0.9)+
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 ### Variance plots
 p2_moderateIPTW_moderateIIW <- ggplot(resultsmat_moderateIPTW_moderateIIW, aes(x = Percentile, y = Variance, color = Group, shape = Group)) + 
@@ -616,8 +616,8 @@ p2_moderateIPTW_moderateIIW <- ggplot(resultsmat_moderateIPTW_moderateIIW, aes(x
   theme(legend.title=element_blank())+
   xlab("Threshold (Percentile)") +
   ylim(0.015, 0.03)+
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 ### MSE plots
 p3_moderateIPTW_moderateIIW <- ggplot(resultsmat_moderateIPTW_moderateIIW, aes(x = Percentile, y = MSE, color = Group, shape = Group)) + 
@@ -626,8 +626,8 @@ p3_moderateIPTW_moderateIIW <- ggplot(resultsmat_moderateIPTW_moderateIIW, aes(x
   theme(legend.title=element_blank()) +
   xlab("Threshold (Percentile)")+
   ylim(0, 0.2)+
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8))
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10))
 
 
 combined_moderateIPTW_moderateIIW <- p1_moderateIPTW_moderateIIW + p2_moderateIPTW_moderateIIW + p3_moderateIPTW_moderateIIW & theme(legend.position = "bottom")
