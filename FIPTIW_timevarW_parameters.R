@@ -176,9 +176,10 @@ N = 1000
 varsel_timevar_n500 <- simulateALLVarSel(N, n, beta1, beta2vec, 
                                          beta3, gamma1, gamma2vec, gamma3, alpha0, alpha1, tau, 
                                          inParallel = T, nclusters)
-saveRDS(varsel_n500, "varsel_timevar_n1000.rds")
+saveRDS(varsel_timevar_n500, "varsel_timevar_n500.rds")
 
-kable(varsel_n500$resultsmat_beta01, booktabs = T, digits = 2,format = "latex") %>%
+
+kable(varsel_timevar_n500$resultsmat_beta01, booktabs = T, digits = 2,format = "latex") %>%
   add_header_above(c(" " = 3, "Variables used to estimate intensity" = 8))
 
 
