@@ -263,7 +263,6 @@ simulateOneFIPTIW <- function(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, al
   # Simulates one instance of the simulation, obtaining estimates for beta1 under various weighting
   # IIW uses stabilized weights
   
-  
   singlerun <- gendata_FIPTIW(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau,
                               censinform, eta1, eta2, eta3)
   simdata <- singlerun$simdata
@@ -275,8 +274,11 @@ simulateOneFIPTIW <- function(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, al
   #find tertiles for cubic spline to estimate the time-var intercept
   terti<-quantile(1:tau , c(0.3333, 0.66666), type = 1) 
   
-
+  
+  
   beta1_naive <- summary(geeglm(y ~  D + bs(simdata$time,degree=3,knots=c(terti)), id = id, data = simdata))$coef[2,1] #ATE is biased
+
+  
   
   
   # IIW Weights
@@ -340,7 +342,7 @@ simulateResultsFIPTIW <-  function(N, n, beta1, beta2, beta3, gamma1, gamma2, ga
     results_beta1 <- matrix(data = NA, nrow = N, ncol = 4)
     
     for(i in 1:N){
-      if(i%%100 == 0){print(i)}
+      if(i%%1 == 0){print(i)}
       simrun <- simulateOneFIPTIW(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau, censinform, 
                                   eta1, eta2, eta3)
       results_beta1[i,] <- c(simrun$beta1_naive, simrun$beta1_iiw,
@@ -487,13 +489,12 @@ simulateALLFIPTIW <- function(N, n, beta1, beta2, beta3, gamma1, gamma2vec, gamm
 
 simulateALLFIPTIW_CENS<- function(N, n, beta1, beta2, beta3, gamma1, gamma2vec, gamma3vec, 
                                     alpha0, alpha1vec, tau, outputfulldatalist = FALSE, censinform = F, 
-                                    eta1 = NULL, eta2 = NULL, eta3 = NULL){
+                                    eta1vec = NULL, eta2vec = NULL, eta3vec = NULL){
   #N: number of simulation runs
   #n: vector of sample sizes
   #beta1: coefficient for Xi(t) in logistic outcome model
   #beta2: vector of coefficients to consider for outcome generation model
   #gamma1, gamma2 parameters for intensity for Xi(t) and Zi, respectively
-  #tau: maximum follow-up time
   
   #This function aggregates simulation results for varying n and beta2
   
@@ -1079,7 +1080,27 @@ simulateOneFIPTICW <- function(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, a
   simdata$censored <- ifelse(simdata$obsnumber == simdata$numobs, 1, 0)
 
 
-  beta1_naive <- summary(geeglm(y ~  D + bs(simdata$time,degree=3,knots=c(terti)), id = id, data = simdata))$coef[1,1] #ATE is biased
+  beta1_naive <- tryCatch(
+    
+    expr = {
+      #!add try catch to use another dataset if this one fails!!!!!!!!
+      summary(geeglm(y ~  D + bs(simdata$time,degree=3,knots=c(terti)), id = id, data = simdata))$coef[2,1] #ATE is biased
+    },
+    
+    error = function(err){
+      singlerun <- gendata_FIPTIW(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau,
+                                  censinform, eta1, eta2, eta3)
+      simdata <- singlerun$simdata
+      numevents <- singlerun$numevents
+      baselinedata <- singlerun$baselinedata
+      newn <- singlerun$newn
+      
+      
+      #find tertiles for cubic spline to estimate the time-var intercept
+      terti<-quantile(1:tau , c(0.3333, 0.66666), type = 1) 
+      return(summary(geeglm(y ~  D + bs(simdata$time,degree=3,knots=c(terti)), id = id, data = simdata))$coef[2,1])
+    }
+  )
 
 
   # IIW Weights
@@ -1089,7 +1110,7 @@ simulateOneFIPTICW <- function(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, a
   #iiw <- 1/exp(cbind(simdata$D, simdata$W*log(simdata$time), simdata$Z)%*%gamma.hat)
   iiw <- exp(cbind(simdata$D)%*%delta.hat)/exp(cbind(simdata$D, simdata$W*log(simdata$time), simdata$Z)%*%gamma.hat)
 
-  beta1_iiw <- summary(glm(y ~ D + bs(simdata$time,degree=3,knots=c(terti)), data=simdata, weights = iiw))$coef[1,1]
+  beta1_iiw <- summary(glm(y ~ D + bs(simdata$time,degree=3,knots=c(terti)), data=simdata, weights = iiw))$coef[2,1]
 
   # IPW weights
   psmod <- glm(D ~ W, family = binomial(link = "logit"), data = simdata)
@@ -1097,7 +1118,7 @@ simulateOneFIPTICW <- function(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, a
   prDmod <- glm(D ~ 1, family = binomial(link = "logit"), data = simdata)
   prD <- expit(predict(prDmod))
   ipw <- 1/ps*simdata$D+1/(1-ps)*(1-simdata$D)
-  beta1_ipw <- summary(glm(y ~ D + bs(simdata$time,degree=3,knots=c(terti)), data=simdata, weights = ipw))$coef[1,1]
+  beta1_ipw <- summary(glm(y ~ D + bs(simdata$time,degree=3,knots=c(terti)), data=simdata, weights = ipw))$coef[2,1]
 
   # IPCW
 
@@ -1107,12 +1128,12 @@ simulateOneFIPTICW <- function(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, a
 
   # FIPTIW
   fiptiw <- ipw*iiw
-  beta1_fiptiw <- summary(glm(y ~ D + bs(simdata$time,degree=3,knots=c(terti)), data=simdata, weights = fiptiw))$coef[1,1]
+  beta1_fiptiw <- summary(glm(y ~ D + bs(simdata$time,degree=3,knots=c(terti)), data=simdata, weights = fiptiw))$coef[2,1]
 
 
   #FIPTICW
   fipticw <- ipw*iiw*ipcw
-  beta1_fipticw <- summary(glm(y ~ D + bs(simdata$time,degree=3,knots=c(terti)), data=simdata, weights = fipticw))$coef[1,1]
+  beta1_fipticw <- summary(glm(y ~ D + bs(simdata$time,degree=3,knots=c(terti)), data=simdata, weights = fipticw))$coef[2,1]
 
 
 
@@ -1206,7 +1227,7 @@ simulateResultsFIPTICW <-  function(N, n, beta1, beta2, beta3, gamma1, gamma2, g
 
 simulateALLFIPTICW_CENS<- function(N, n, beta1, beta2, beta3, gamma1, gamma2vec, gamma3vec,
                                   alpha0, alpha1vec, tau, outputfulldatalist = FALSE, censinform = F,
-                                  eta1 = NULL, eta2 = NULL, eta3 = NULL){
+                                  eta1vec = NULL, eta2vec = NULL, eta3vec = NULL){
   #N: number of simulation runs
   #n: vector of sample sizes
   #beta1: coefficient for Xi(t) in logistic outcome model
@@ -1254,7 +1275,7 @@ simulateALLFIPTICW_CENS<- function(N, n, beta1, beta2, beta3, gamma1, gamma2vec,
     }
   }
 
-  if(outputfulldatalist == TRUE){
+    if(outputfulldatalist == TRUE){
     names(fulldatalist) <- fulldatalistnames
   }
 
@@ -1263,7 +1284,7 @@ simulateALLFIPTICW_CENS<- function(N, n, beta1, beta2, beta3, gamma1, gamma2vec,
   resultsmat<- resultsmat[-1,]
 
   colnames(resultsmat) <- c( "eta1",  "eta2", "eta3", "Bias", "Var" , "MSE" , "Bias", "Var" , "MSE" ,
-                             "Bias", "Var" , "MSE", "Bias", "Var" , "MSE", "Bias", "Var" , "MSE" )
+                             "Bias", "Var" , "MSE", "Bias", "Var" , "MSE","Bias", "Var" , "MSE")
 
   if(outputfulldatalist == TRUE){
     out <- list(resultsmat, fulldatalist)
