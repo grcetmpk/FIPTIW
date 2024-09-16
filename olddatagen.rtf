@@ -1,0 +1,222 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2757
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 \
+\
+gendata_FIPTIW <- function(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, alpha0, alpha1, tau, censinform = F, \
+                           eta1 = NULL, eta2 = NULL, eta3 = NULL)\{\
+\
+  # n: number of subjects\
+  # tau: maximum follow up\
+  # censinform: set to T to generate censoring times that are informative\
+  #\
+  # Data generation model: Y_i(t)  = (2-t) + beta1D_i + beta2[W_i - E(w_i|D_i)] + \
+  #                                     beta3[Z_i - E(Z_i|D_i)] + phi_i + epsilon_i(t)\
+  #\
+  # Marginal model: E(Y_i(t) | D_i) = E\{(2-t) + beta1D_i + beta2[W_i - E(w_i|D_i)] + beta3(Z_i - E(Z_i|D_i)) | D_i]\
+  #                                 = (2-t) + beta1D_i + betaE\{2[W_i - W(W_i|D_i) | D_i] + beta3E\{Z_i - E(Z_i|D_i)|D_i\}\
+  #                                 = (2-t) + beta1D_i \
+  #  \
+  # Observation intensity: lambda_i(t) = eta_i*exp(gamma1D_i + gamma2W_i(t) + gamma3Z_i)\
+  # Treatment assignment: P(D_i = 1) = expit(alpha0 + alpha1W_i) \
+  # Censoring: C_i ~ Unif(tau/2, tau) unless censinform = T, then C_i gen from 0.1texp(eta1D_i + eta2W_i(t) + eta3Z_i)\
+  # where\
+  #\
+  # D: Treatment assignment indicator\
+  # W: Treatment confounder\
+  # Z: Observation times confounder\
+  # Y: Time-varying outcome\
+  # t: observation time\
+  # phi: random effect\
+  # epsilon: random error, function of time\
+  \
+  \
+  \
+  mu_Z_D0 <- 2\
+  var_Z_D0 <- 1 \
+  mu_Z_D1 <- 0\
+  var_Z_D1 <- 0.5\
+  \
+  var_phi <- 1.25\
+  var_epsilon <- 1\
+  \
+  getObsTimesViaThinning <- function(lambda, tmax)\{\
+    # Thinning method for generating NHPP observation times\
+    #\
+    # lambda: rate function for the NHPP \
+    # tmax: maximum follow up time (tau)\
+    \
+    # initialize \
+    nobs <- 0\
+    m <- 0\
+    t0 <- 0\
+    s0 <- 0\
+    lambdabar <- lambda(tmax) #supremum, intensity is bounded by this HPP\
+    \
+    times <- c(t0)\
+    s <- s0\
+    \
+    i = m + 1 # R starts at 1 not 0, minor adjustment\
+    \
+    while(s < tmax)\{\
+      u <- runif(1)\
+      w <- -log(u)/lambdabar # makes w ~ exp(lambdabar)\
+      s <-  s + w # s_m+1 = s + w\
+      D <- runif(1)\
+      \
+      if(D <= lambda(s)/lambdabar)\{\
+        times <- c(times, s)\
+        nobs <- nobs + 1\
+      \}\
+      \
+      i <- i + 1\
+      m <- m + 1\
+    \}\
+    \
+    times <- times[-1]\
+    \
+    if(times[nobs] <= tmax)\{\
+      return(times)\
+    \} else\{\
+      return(times[-nobs])\
+    \}\
+  \}\
+  \
+  \
+  \
+  # generate subjects one by one and then combine\
+  id = 1\
+  simdatafull <- data.frame(matrix(NA, ncol = 9))\
+  colnames(simdatafull) <- c("id", "time", "D", "W", "Z", "censortime", "cexp_W_D", "cexp_Z_D",  "y")\
+  \
+  while(id <= n)\{\
+    \
+    ## Generate Covariates\
+    \
+    # generate treatment confounder w ~ N(0,1)\
+    W <- runif(1, 0, 1)\
+    \
+    # generate treatment assignment\
+    prD <- expit(alpha0 + alpha1*W)\
+    D <- rbinom(1, 1, prD)\
+    \
+    # generate observation times confounder Z ~ N( mu_Z_D0, var_Z_D0) if D = 0 and \
+    # N( mu_Z_D1, var_Z_D1) if D = 1\
+    \
+    Z <- ifelse(D == 0, rnorm(1, mu_Z_D0, sqrt(var_Z_D0)), rnorm(1, mu_Z_D1, sqrt(var_Z_D1)))\
+    \
+    \
+    # generate random effect\
+    phi <- rnorm(1, 0, var_phi)\
+    \
+    \
+    ## Generate Observation Times\
+    \
+    # simulate censoring time\
+    if(censinform == T)\{\
+      U <- runif(1, 0, 1)\
+      censortime <- sqrt(2/0.1*(-log(U)*exp(-1*eta1*D+-1*eta2*W+-1*eta3*Z)))\
+    \}else\{\
+      censortime <- runif(1, tau/2, tau)\
+    \}\
+    \
+    \
+    \
+    # calculate eta\
+    eta <- rgamma(1, shape = 100, scale = 0.01) #eta is for random effect with mean 1 and sd 0.1 \
+    #(obs times within subject correlated if sd !0)\
+    \
+    \
+    lambdafun <- function(t) eta*sqrt(t)/2*exp(gamma1*D + gamma2*W*log(t) + gamma3*Z)\
+    \
+    # generate observation times via thinning\
+    obstimes <- getObsTimesViaThinning(lambdafun, tau)\
+    obstimes <- round(obstimes,4)\
+    \
+    if(length(obstimes) > 0)\{\
+      \
+      \
+      # calculate the number of events for individual i\
+      nevents <- length(obstimes)\
+      \
+      simdata <- data.frame(cbind(rep(id, nevents), obstimes, rep(D, nevents), \
+                                  rep(W, nevents), rep(Z, nevents), rep(censortime, nevents)))\
+      colnames(simdata) <- c("id", "time", "D", "W", "Z", "censortime")\
+      \
+      \
+      \
+      ## Generate outcome\
+      # need conditional expectation and variance of Z | X\
+      \
+      simdata$cexp_W_D <- 0.5*log(simdata$time) #generated from N(0,1) independently from D\
+      simdata$cexp_Z_D <- ifelse(simdata$D == 0, mu_Z_D0, mu_Z_D1)\
+      \
+      \
+      simdata$y <- (2 - simdata$time) + beta1*simdata$D + beta2*(simdata$W*log(simdata$time) - simdata$cexp_W_D) +\
+        beta3*(simdata$Z - simdata$cexp_Z_D) + \
+        rep(phi, dim(simdata)[1]) + rnorm(dim(simdata)[1], 0, sqrt(var_epsilon))\
+      \
+      \
+      #remove duplicated times\
+      #if subject has two of the same times, remove one of them.\
+      is.dup <- duplicated(simdata[, c(1,2)])#find which are duplicates (by ID and time)\
+      if(sum(is.dup > 0))\{\
+        simdata <- simdata[!is.dup,] #remove them\
+      \}\
+      \
+      #make sure observation times >0\
+      simdata <- simdata[simdata$time>0, ]\
+      \
+      # filter censored observations\
+      censored <- which(simdata$time > censortime)\
+      \
+      if(length(censored) > 0)\{\
+        # remove censored observations\
+        simdata <- simdata[-censored,]\
+      \}\
+      \
+      simdatafull <- rbind(simdatafull, simdata)\
+      \
+    \}\
+    \
+    \
+    \
+    id = id + 1\
+    \
+  \}\
+  \
+  simdata <- simdatafull[-1,] #remove empty first row\
+  \
+  \
+  # order dataset by ID then time\
+  simdata <- simdata[with(simdata, order(id, time)), ]\
+  \
+  \
+  #include a variable counting observation number, to be used for lagging time for Surv function\
+  simdata$obsnumber <- with(simdata, ave(id, id, FUN = seq_along))\
+  \
+  # #create lagged time variable\
+  simdata$time.lag <- simdata$time[c(nrow(simdata),1:(nrow(simdata)-1))]\
+  simdata$time.lag[simdata$obsnumber == 1] <- 0\
+  \
+  simdata$event <- 1\
+  \
+  \
+  #check the generated data\
+  numevents <- summary(tapply(simdata$event, simdata$id, sum)) \
+  \
+  \
+  #also get data for individuals at baseline (all same here)\
+  baselinedata <- simdata[simdata$obsnumber == 1, ]\
+  newn <- dim(baselinedata)[1] #number of people after censoring etc\
+  \
+  out <- list(simdata, numevents, baselinedata, newn)\
+  names(out) <- c("simdata", "numevents", "baselinedata", "newn")\
+  \
+  return(out) \
+  \
+\}}

@@ -27,39 +27,45 @@
 source("FIPTIW_timevarW_functions.R")
 
 # parallelization stuff
-ncores <- detectCores() - 1
+ncores <- detectCores() - 3
 nclusters <- makeCluster(ncores)
 
 require(knitr)
 require(kableExtra)
+require(ggplot2)
+require(ggpubr)
 
 
-# #~~~~~~~~~~ FIPTIW simulation, assumptions satisfied (not shown in paper).
-# 
-# #### n = 100 ###
-# 
-# set.seed(500)
-# n = 100
-# beta1 = 0.5
-# beta2 = 2
-# beta3 = 1
-# gamma1 = 0.5
-# gamma2vec = c(0, 0.3)
-# gamma3vec = c(0, 0.6)
-# alpha0 = -1
-# alpha1vec = c(0, 1, 3)
-# tau = 7
-# N = 1000
-# 
-# # resultsFIPTIW_n100 <- simulateALLFIPTIW(N, n, beta1, beta2, beta3, gamma1, gamma2vec, gamma3vec,
-# #                                                         alpha0, alpha1vec, tau, outputfulldatalist = FALSE)
-# # saveRDS(resultsFIPTIW_n100, "resultsFIPTIW_n100.rds")
-# resultsFIPTIW_n100 <- readRDS("resultsFIPTIW_n100.rds")
-# 
-# kable(resultsFIPTIW_n100$resultsmat, booktabs = T, digits = 3,format = "latex") %>%
-#   add_header_above(c(" " = 3, "Unweighted" = 3, "IIW" = 3, "IPTW" = 3, "FIPTIW" = 3))
-# 
-# 
+#~~~~~~~~~~ FIPTIW simulation, assumptions satisfied (not shown in paper).
+
+#### n = 100 ###
+
+set.seed(2345)
+n = 100
+beta1 = 0.5
+beta2 = 2
+beta3 = 1
+gamma1 = 0.5
+gamma2vec = c(0, 0.3)
+gamma3vec = c(0, 0.6)
+alpha0 = -1
+alpha1vec = c(0, 1)
+tau = 7
+N = 500
+ncutpts = 2
+
+resultsFIPTIW_n100 <- simulateALLFIPTIW(N, n, beta1, beta2, beta3, gamma1, gamma2vec, gamma3vec,
+                                                        alpha0, alpha1vec, tau, outputfulldatalist = FALSE, ncutpts = 2,
+                                        inParallel = T, nclusters = nclusters)
+saveRDS(resultsFIPTIW_n100, "resultsFIPTIW_n100.rds")
+
+kable(resultsFIPTIW_n100$resultsmat, booktabs = T, digits = 3,format = "latex") %>%
+  add_header_above(c(" " = 3, "Unweighted" = 5, "IIW" = 5, "IPTW" = 5, "FIPTIW" = 5))
+
+
+
+
+
 # 
 # 
 # ### n = 50 ###
@@ -81,10 +87,6 @@ require(kableExtra)
 # #                                                        alpha0, alpha1vec, tau, outputfulldatalist = FALSE)
 # #saveRDS(resultsFIPTIW_n50, "resultsFIPTIW_n50.rds")
 # resultsFIPTIW_n50 <- readRDS("resultsFIPTIW_n50.rds")
-# 
-# kable(resultsFIPTIW_n50$resultsmat, booktabs = T, digits = 3,format = "latex") %>%
-#   add_header_above(c(" " = 3, "Unweighted" = 3, "IIW" = 3, "IPTW" = 3, "FIPTIW" = 3))
-# 
 # 
 # 
 # ### n = 500 ###
@@ -129,9 +131,11 @@ alpha0 = 0
 alpha1 = 0
 tau = 7
 N = 1000
-
-# varsel_n100 <- simulateALLVarSel(N, n, beta1, beta2vec, beta3, gamma1, gamma2vec, gamma3, alpha0, alpha1, tau)
-# saveRDS(varsel_n100, "varsel_n100.rds")
+# 
+# varsel_n100 <- simulateALLVarSel(N, n, beta1, beta2vec, beta3, gamma1, gamma2vec, 
+#                                  gamma3, alpha0, alpha1, tau, ncutpts = 2, 
+#                                  inParallel = T, nclusters = nclusters)
+saveRDS(varsel_n100, "varsel_n100.rds")
 varsel_n100 <- readRDS("varsel_n100.rds")
 
 kable(varsel_n100$resultsmat_beta01, booktabs = T, digits = 2,format = "latex") %>%
@@ -139,7 +143,7 @@ kable(varsel_n100$resultsmat_beta01, booktabs = T, digits = 2,format = "latex") 
 
 
 
-set.seed(6412)
+set.seed(39487)
 n = 50
 beta1 = 0.5
 beta2vec = c(0, 2)
@@ -151,8 +155,10 @@ alpha0 = 0
 alpha1 = 0
 tau = 7
 N = 1000
-# 
-# varsel_n50 <- simulateALLVarSel(N, n, beta1, beta2vec, beta3, gamma1, gamma2vec, gamma3, alpha0, alpha1, tau)
+ncutpts = 2
+#
+# varsel_n50 <- simulateALLVarSel(N, n, beta1, beta2vec, beta3, gamma1, gamma2vec, gamma3, 
+#                                 alpha0, alpha1, tau, ncutpts = 1, inParallel = T, nclusters = nclusters)
 # saveRDS(varsel_n50, "varsel_n50.rds")
 varsel_n50 <- readRDS("varsel_n50.rds")
 kable(varsel_n50$resultsmat_beta01, booktabs = T, digits = 2,format = "latex") %>%
@@ -172,10 +178,11 @@ alpha0 = 0
 alpha1 = 0
 tau = 7
 N = 1000
-# 
-# varsel_timevar_n500 <- simulateALLVarSel(N, n, beta1, beta2vec, 
-#                                          beta3, gamma1, gamma2vec, gamma3, alpha0, alpha1, tau, 
-#                                          inParallel = T, nclusters)
+ncutpts = 2
+
+# varsel_timevar_n500 <- simulateALLVarSel(N, n, beta1, beta2vec,
+#                                          beta3, gamma1, gamma2vec, gamma3, alpha0, alpha1, tau,
+#                                          inParallel = T, nclusters, ncutpts = 2)
 # saveRDS(varsel_timevar_n500, "varsel_timevar_n1000.rds")
 
 kable(varsel_timevar_n500$resultsmat_beta01, booktabs = T, digits = 2,format = "latex") %>%
@@ -188,7 +195,7 @@ kable(varsel_timevar_n500$resultsmat_beta01, booktabs = T, digits = 2,format = "
 
 #### n = 100
 
-set.seed(976876)
+set.seed(234)
 n = 100
 beta1 = 0.5
 beta2 = 2
@@ -201,28 +208,32 @@ alpha1 = 1
 tau = 7
 N = 1000
 censinform = T
-eta1vec = c(0, 0.1, 0.4)
+eta1vec = c(0)
 eta2vec = c(0, 0.2, 0.5)
 eta3vec = c(0, 0.4, 0.6)
+ncutpts = 2
 
-# results_censoring_n100_ipcw <- simulateALLFIPTICW_CENS(N, n, beta1, beta2, beta3, gamma1,
-#                                                  gamma2vec, gamma3vec, alpha0, alpha1, tau, outputfulldatalist = F,
-#                                                  censinform = T, eta1vec, eta2vec, eta3vec)
-# saveRDS(results_censoring_n100_ipcw, "results_censoring_n100_ipcw.rds")
-results_censoring_n100_ipcw <- readRDS("results_censoring_n100_ipcw.rds")
+results_censoring_n100 <- simulateALLFIPTICW_CENS(N, n, beta1, beta2, beta3, gamma1,
+                                                 gamma2vec, gamma3vec, alpha0, alpha1, tau, outputfulldatalist = T,
+                                                 censinform = T, eta1vec, eta2vec, eta3vec, ncutpts)
+saveRDS(results_censoring_n100, "results_censoring_n100.rds")
+results_censoring_n100 <- readRDS("results_censoring_n100.rds")
 
-kable(results_censoring_n100_ipcw$resultsmat[, c(1,2,3, 4,6,7,9,10,12, 13, 15, 16, 18)], booktabs = T, 
+plot_censoring_n100 <- makeBoxPlotsATE(results_censoring_n100$fulldatalist, eta2vec)
+annotate_figure(plot_censoring_n100, top = text_grob("Combined Results for n = 100", face = "bold", size = 20))
+
+
+coveragemat_n100 <- results_censoring_n100$resultsmat[, c(2,3,7,8,12,13,17,18,22,23, 27,28)]
+kable(coveragemat_n100, booktabs = T, 
       digits = 3,format = "latex") %>%
   add_header_above(c(" " = 3, "Unweighted" = 2, "IIW" = 2, "IPTW" = 2, "FIPTIW" = 2, "FIPTICW" = 2))
-
-#create plot
 
 
 
 
 ##### n = 50
 
-set.seed(3028)
+set.seed(2432)
 n = 50
 beta1 = 0.5
 beta2 = 2
@@ -235,25 +246,32 @@ alpha1 = 1
 tau = 7
 N = 1000
 censinform = F
-eta1vec = c(0, 0.1, 0.4)
+eta1vec = c(0)
 eta2vec = c(0, 0.2, 0.5)
 eta3vec = c(0, 0.4, 0.6)
 
-results_censoring_n50_ipcw <- simulateALLFIPTICW_CENS(N, n, beta1, beta2, beta3, gamma1,
-                                                 gamma2vec, gamma3vec, alpha0, alpha1, tau, outputfulldatalist = F,
-                                                 censinform = T, eta1vec, eta2vec, eta3vec)
-saveRDS(results_censoring_n50_ipcw, "results_censoring_n50_ipcw.rds")
-results_censoring_n50_ipcw <- readRDS("results_censoring_n50_ipcw.rds")
 
-kable(results_censoring_n50_ipcw$resultsmat[, c(1,2,3, 4,6,7,9,10,12, 13, 15, 16, 18)], booktabs = T, 
+results_censoring_n50 <- simulateALLFIPTICW_CENS(N, n, beta1, beta2, beta3, gamma1,
+                                                 gamma2vec, gamma3vec, alpha0, alpha1, tau, outputfulldatalist = T,
+                                                 censinform = T, eta1vec, eta2vec, eta3vec, ncutpts = 1)
+saveRDS(results_censoring_n50, "results_censoring_n50.rds")
+results_censoring_n50 <- readRDS("results_censoring_n50.rds")
+
+plot_censoring_n50 <- makeBoxPlotsATE(results_censoring_n50$fulldatalist, eta2vec)
+annotate_figure(plot_censoring_n50, top = text_grob("Combined Results for n = 50", face = "bold", size = 20))
+
+
+
+coveragemat_n50 <- results_censoring_n50$resultsmat[, c(2,3,7,8,12,13,17,18,22,23, 27,28)]
+kable(coveragemat_n50, booktabs = T, 
       digits = 3,format = "latex") %>%
-  add_header_above(c(" " = 3, "Unweighted" = 2, "IIW" = 2, "IPTW" = 2, "FIPTIW" = 2, "FIPTICW" = 2))
+  add_header_above(c(" " = 2, "Unweighted" = 2, "IIW" = 2, "IPTW" = 2, "FIPTIW" = 2, "FIPTICW" = 2))
 
 
 
 ##### n = 500
 
-set.seed(234234)
+set.seed(444)
 n = 500
 beta1 = 0.5
 beta2 = 2
@@ -266,18 +284,24 @@ alpha1 = 1
 tau = 7
 N = 1000
 censinform = F
-eta1vec = c(0, 0.1, 0.4)
+eta1vec = c(0)
 eta2vec = c(0, 0.2, 0.5)
 eta3vec = c(0, 0.4, 0.6)
+ncutpts = 2
 
-results_censoring_n500_ipcw <- simulateALLFIPTICW_CENS(N, n, beta1, beta2, beta3, gamma1,
-                                                      gamma2vec, gamma3vec, alpha0, alpha1, tau, outputfulldatalist = F,
-                                                      censinform = T, eta1vec, eta2vec, eta3vec)
-saveRDS(results_censoring_n500_ipcw, "results_censoring_n500_ipcw.rds")
-results_censoring_n500_ipcw <- readRDS("results_censoring_n50 fdswjhmv c0_ipcw.rds")
+results_censoring_n500 <- simulateALLFIPTICW_CENS(N, n, beta1, beta2, beta3, gamma1,
+                                                      gamma2vec, gamma3vec, alpha0, alpha1, tau, outputfulldatalist = T,
+                                                      censinform = T, eta1vec, eta2vec, eta3vec, ncutpts)
+saveRDS(results_censoring_n500, "results_censoring_n500.rds")
+results_censoring_n500 <- readRDS("results_censoring_n500.rds")
 
-kable(results_censoring_n500_ipcw$resultsmat[, c(1,2,3, 4,6,7,9,10,12, 13, 15, 16, 18)], booktabs = T, 
+plot_censoring_n500 <- makeBoxPlotsATE(results_censoring_n500$fulldatalist, eta2vec)
+annotate_figure(plot_censoring_n500, top = text_grob("Combined Results for n = 500", face = "bold", size = 20))
+
+
+coveragemat <- results_censoring_n500$resultsmat[, c(2,3,7,8,12,13,17,18,22,23, 27,28)]
+kable(coveragemat, booktabs = T, 
       digits = 3,format = "latex") %>%
-  add_header_above(c(" " = 3, "Unweighted" = 2, "IIW" = 2, "IPTW" = 2, "FIPTIW" = 2, "FIPTICW" = 2))
+  add_header_above(c(" " = 2, "Unweighted" = 2, "IIW" = 2, "IPTW" = 2, "FIPTIW" = 2, "FIPTICW" = 2))
 
 

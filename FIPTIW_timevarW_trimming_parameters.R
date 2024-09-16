@@ -24,7 +24,6 @@
 #
 
 source("FIPTIW_timevarW_functions.R")
-
 require(knitr)
 require(kableExtra)
 require(reshape2)
@@ -32,6 +31,8 @@ require(ggplot2)
 require(latex2exp)
 require(patchwork)
 require(grid)
+require(ggpubr)
+require(dplyr)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ low IPTW weights, low IIW weights
 #### n = 100 ###
@@ -49,10 +50,11 @@ alpha1 = 0.5
 tau = 7
 N = 1000
 baseline = F
+ncutpts = 2
 
 
 # weighttrimresults_lowIPTW_lowIIW<- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
-#                                             alpha0, alpha1, tau, baseline)
+#                                             alpha0, alpha1, tau, ncutpts = 2)
 # saveRDS(weighttrimresults_lowIPTW_lowIIW, "weighttrimresults_lowIPTW_lowIIW.rds")
 weighttrimresults_lowIPTW_lowIIW <- readRDS("weighttrimresults_lowIPTW_lowIIW.rds")
 
@@ -63,72 +65,39 @@ weighttrimresults_lowIPTW_lowIIW$othermat_iiw
 weighttrimresults_lowIPTW_lowIIW$othermat_fiptiw
 
 
-
-
-### create dataset for data vis
-biasmat <- weighttrimresults_lowIPTW_lowIIW$biasmat
-colnames(biasmat) <- c("Trimmed Before", "Trimmed After")
-biasmat <- melt(biasmat)
-biasmat$value <- biasmat$value/beta1
-varmat <- weighttrimresults_lowIPTW_lowIIW$varmat
-colnames(varmat) <- c("Trimmed Before", "Trimmed After")
-varmat <- melt(varmat)
-msemat <- weighttrimresults_lowIPTW_lowIIW$msemat
-colnames(msemat) <- c("Trimmed Before", "Trimmed After")
-msemat <- melt(msemat)
-resultsmat_lowIPTW_lowIIW <- cbind(biasmat, varmat$value, msemat$value)
-colnames(resultsmat_lowIPTW_lowIIW) <- c("Percentile", "Group", "Bias", "Variance", "MSE")
-
-
-# bias plot
-p1_lowIPTW_lowIIW <- ggplot(resultsmat_lowIPTW_lowIIW, aes(x = Percentile, y = Bias, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8) +
-  geom_hline(yintercept = 0, color = "red", linetype = "dashed")+ 
-  theme(legend.title=element_blank())+
-  xlab("Threshold (Percentile)") +
-  ylab("Rel. Bias")+
-  ylim(-0.3, 0.9) +
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-### Variance plots
-
-p2_lowIPTW_lowIIW<- ggplot(resultsmat_lowIPTW_lowIIW, aes(x = Percentile, y = Variance, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8) + 
-  theme(legend.title=element_blank())+
-  xlab("Threshold (Percentile)")+
-  ylim(0.015, 0.03)+
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-### MSE plots
-
-
-p3_lowIPTW_lowIIW <- ggplot(resultsmat_lowIPTW_lowIIW, aes(x = Percentile, y = MSE, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8)+ 
-  theme(legend.title=element_blank()) +
-  xlab("Threshold (Percentile)")+
-  ylim(0, 0.2)+
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-
-combined_lowIPTW_lowIIW <- p1_lowIPTW_lowIIW + p2_lowIPTW_lowIIW + p3_lowIPTW_lowIIW & theme(legend.position = "bottom")
-# combined_lowIPTW_lowIIW + 
-#   plot_layout(guides = "collect") +
-#   plot_annotation(title = "Results: Low IPTW, Low IIW")
-# 
-
 ### determine minimum bias, var, mse, etc
 
-#minimum bias
-resultsmat_lowIPTW_lowIIW[resultsmat_lowIPTW_lowIIW$Bias == min(abs(resultsmat_lowIPTW_lowIIW$Bias)), ]
-resultsmat_lowIPTW_lowIIW[resultsmat_lowIPTW_lowIIW$Variance == min(abs(resultsmat_lowIPTW_lowIIW$Variance)), ]
-resultsmat_lowIPTW_lowIIW[resultsmat_lowIPTW_lowIIW$MSE == min(abs(resultsmat_lowIPTW_lowIIW$MSE)), ]
+#bias closest to zero
+bias_lowlow <- weighttrimresults_lowIPTW_lowIIW$biasmat
+mse_lowlow <- weighttrimresults_lowIPTW_lowIIW$msemat
+coverage_lowlow <- weighttrimresults_lowIPTW_lowIIW$coveragemat
 
+bias_lowlow[which(abs(bias_lowlow$Bias) == min(abs(bias_lowlow$Bias))),] 
+# 99th percentile, trimmed first
+# bias = 0.000
+
+bias_lowlow[bias_lowlow$Percentile==95, ]
+# compared to bias = -0.086 for trimmed first, -0.068 for trimmed after
+
+
+mse_lowlow[which(abs(mse_lowlow$MSE) == min(abs(mse_lowlow$MSE))),] 
+#97-100th percentile (MSE 0.129) for both trimmed first and after
+
+mse_lowlow[mse_lowlow$Percentile==95, ]
+# MSE = 0.133 for trimmed first, 
+# MSE = 0.133 for trimmed after
+
+coverage_lowlow[coverage_lowlow$Percentile==95, ]
+# 0.949 trimmed first,
+# 0.949 trimmed after
+
+coverage_lowlow[coverage_lowlow$Percentile==100, ]
+# 0.953
+
+lowlowPlots<- plotWeightTrimmingResults(biasmat = weighttrimresults_lowIPTW_lowIIW$biasmat,
+                                                         varmat = weighttrimresults_lowIPTW_lowIIW$varmat,
+                                                         msemat = weighttrimresults_lowIPTW_lowIIW$msemat,
+                                                         coveragemat = weighttrimresults_lowIPTW_lowIIW$coveragemat)
 
 
 
@@ -137,7 +106,7 @@ resultsmat_lowIPTW_lowIIW[resultsmat_lowIPTW_lowIIW$MSE == min(abs(resultsmat_lo
 
 #### n = 100 ###
 
-set.seed(442)
+set.seed(342)
 n = 100
 beta1 = 0.5
 beta2 = 2
@@ -149,9 +118,10 @@ alpha0 = 0
 alpha1 = 3.5
 tau = 7
 N = 1000
+ncutpts = 2
 
 weightrimresults_moderateIPTW_lowIIW <- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
-                                           alpha0, alpha1, tau, baseline = F)
+                                           alpha0, alpha1, tau, ncutpts = 2)
 saveRDS(weightrimresults_moderateIPTW_lowIIW, "weightrimresults_moderateIPTW_lowIIW.rds")
 weightrimresults_moderateIPTW_lowIIW <- readRDS("weightrimresults_moderateIPTW_lowIIW.rds")
 
@@ -163,79 +133,40 @@ weightrimresults_moderateIPTW_lowIIW$othermat_iiw
 weightrimresults_moderateIPTW_lowIIW$othermat_fiptiw
 
 
-### create df for plots
-
-biasmat_moderateIPTW_lowIIW <- weightrimresults_moderateIPTW_lowIIW$biasmat
-colnames(biasmat_moderateIPTW_lowIIW) <- c("Trimmed Before", "Trimmed After")
-biasmat_moderateIPTW_lowIIW <- melt(biasmat_moderateIPTW_lowIIW)
-biasmat_moderateIPTW_lowIIW$value <- biasmat_moderateIPTW_lowIIW$value/beta1
-
-varmat_moderateIPTW_lowIIW <- weightrimresults_moderateIPTW_lowIIW$varmat
-colnames(varmat_moderateIPTW_lowIIW) <- c("Trimmed Before", "Trimmed After")
-varmat_moderateIPTW_lowIIW <- melt(varmat_moderateIPTW_lowIIW)
-
-msemat_moderateIPTW_lowIIW <- weightrimresults_moderateIPTW_lowIIW$msemat
-colnames(msemat_moderateIPTW_lowIIW) <- c("Trimmed Before", "Trimmed After")
-msemat_moderateIPTW_lowIIW <- melt(msemat_moderateIPTW_lowIIW)
-
-resultsmat_moderateIPTW_lowIIW <- cbind(biasmat_moderateIPTW_lowIIW, varmat_moderateIPTW_lowIIW$value, msemat_moderateIPTW_lowIIW$value)
-colnames(resultsmat_moderateIPTW_lowIIW) <- c("Percentile", "Group", "Bias", "Variance", "MSE")
-
-# bias plot
-p1_moderateIPTW_lowIIW<- ggplot(resultsmat_moderateIPTW_lowIIW, aes(x = Percentile, y = Bias, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8) +
-  geom_hline(yintercept = 0, color = "red", linetype = "dashed")+ 
-  theme(legend.title=element_blank())+
-  xlab("Threshold (Percentile)") +
-  ylab("Rel. Bias")+
-  ylim(-0.3, 0.9) +
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-
-### Variance plots
-p2_moderateIPTW_lowIIW<- ggplot(resultsmat_moderateIPTW_lowIIW, aes(x = Percentile, y = Variance, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8) + 
-  theme(legend.title=element_blank())+
-  xlab("Threshold (Percentile)")+
-  ylim(0.015, 0.03)+
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-
-
-### MSE plots
-p3_moderateIPTW_lowIIW <- ggplot(resultsmat_moderateIPTW_lowIIW, aes(x = Percentile, y = MSE, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8)+ 
-  theme(legend.title=element_blank()) +
-  xlab("Threshold (Percentile)")+
-  ylim(0, 0.2)+
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-
-combined_moderateIPTW_lowIIW <- p1_moderateIPTW_lowIIW + p2_moderateIPTW_lowIIW + p3_moderateIPTW_lowIIW & theme(legend.position = "bottom")
-# combined_moderateIPTW_lowIIW + 
-#   plot_layout(guides = "collect") +
-#   plot_annotation(title = "Results: Moderate IPTW, Low IIW")
-
 ### determine minimum bias, var, mse, etc
-resultsmat_moderateIPTW_lowIIW_first <- resultsmat_moderateIPTW_lowIIW[resultsmat_moderateIPTW_lowIIW$Group == "Trimmed Before", ]
-resultsmat_moderateIPTW_lowIIW_after <- resultsmat_moderateIPTW_lowIIW[resultsmat_moderateIPTW_lowIIW$Group == "Trimmed After", ]
 
-#trimming first
-resultsmat_moderateIPTW_lowIIW_first[resultsmat_moderateIPTW_lowIIW_first$Bias == min(abs(resultsmat_moderateIPTW_lowIIW_first$Bias)), ]
-resultsmat_moderateIPTW_lowIIW_first[resultsmat_moderateIPTW_lowIIW_first$Variance == min(abs(resultsmat_moderateIPTW_lowIIW_first$Variance)), ]
-resultsmat_moderateIPTW_lowIIW_first[resultsmat_moderateIPTW_lowIIW_first$MSE == min(abs(resultsmat_moderateIPTW_lowIIW_first$MSE)), ]
+#bias closest to zero
+bias_modlow <- weightrimresults_moderateIPTW_lowIIW$biasmat
+mse_modlow <- weightrimresults_moderateIPTW_lowIIW$msemat
+coverage_modlow <- weightrimresults_moderateIPTW_lowIIW$coveragemat
 
+bias_modlow[which(abs(bias_modlow$Bias) == min(abs(bias_modlow$Bias))),] 
+# 99 percentile, trimmed after
+# bias = 0.098
 
-#trimming after
-resultsmat_moderateIPTW_lowIIW_after[resultsmat_moderateIPTW_lowIIW_after$Bias == min(abs(resultsmat_moderateIPTW_lowIIW_after$Bias)), ]
-resultsmat_moderateIPTW_lowIIW_after[resultsmat_moderateIPTW_lowIIW_after$Variance == min(abs(resultsmat_moderateIPTW_lowIIW_after$Variance)), ]
-resultsmat_moderateIPTW_lowIIW_after[resultsmat_moderateIPTW_lowIIW_after$MSE == min(abs(resultsmat_moderateIPTW_lowIIW_after$MSE)), ]
+bias_modlow[bias_modlow$Percentile==95, ]
+# compared to bias =  for trimmed first,  for trimmed after
+# Trimmedfirst = 0.215
+# Trimmed after = 0.165
+
+mse_modlow[which(abs(mse_modlow$MSE) == min(abs(mse_modlow$MSE))),] 
+#87th percentile (MSE = 0.305) for trimmed after
+
+mse_modlow[mse_modlow$Percentile==95, ]
+# MSE = 0.325 for trimmed first, 
+# MSE = 0.329 for trimmed after
+
+coverage_modlow[coverage_modlow$Percentile==95, ]
+#  0.875 trimmed first,
+#  0.882 trimmed after
+
+coverage_modlow[coverage_modlow$Percentile==100, ]
+# 0.874
+
+modlowplots <- plotWeightTrimmingResults(biasmat = weightrimresults_moderateIPTW_lowIIW$biasmat,
+                                                         varmat = weightrimresults_moderateIPTW_lowIIW$varmat,
+                                                         msemat = weightrimresults_moderateIPTW_lowIIW$msemat,
+                                                         coveragemat = weightrimresults_moderateIPTW_lowIIW$coveragemat)
 
 
 
@@ -262,7 +193,7 @@ tau = 7
 N = 1000
 
 weightrimresults_highIPTW_lowIIW <- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
-                                          alpha0, alpha1, tau, baseline = F)
+                                          alpha0, alpha1, tau, ncutpts = 2)
 saveRDS(weightrimresults_highIPTW_lowIIW, "weightrimresults_highIPTW_lowIIW.rds")
 weightrimresults_highIPTW_lowIIW <- readRDS("weightrimresults_highIPTW_lowIIW.rds")
 
@@ -272,81 +203,41 @@ weightrimresults_highIPTW_lowIIW$othermat_fiptiw
 
 
 
-
-### create df for plots
-
-biasmat_highIPTW_lowIIW <- weightrimresults_highIPTW_lowIIW$biasmat
-colnames(biasmat_highIPTW_lowIIW) <- c("Trimmed Before", "Trimmed After")
-biasmat_highIPTW_lowIIW<- melt(biasmat_highIPTW_lowIIW)
-biasmat_highIPTW_lowIIW$value <- biasmat_highIPTW_lowIIW$value/beta1
-
-
-varmat_highIPTW_lowIIW<- weightrimresults_highIPTW_lowIIW$varmat
-colnames(varmat_highIPTW_lowIIW) <- c("Trimmed Before", "Trimmed After")
-varmat_highIPTW_lowIIW <- melt(varmat_highIPTW_lowIIW)
-
-msemat_highIPTW_lowIIW <- weightrimresults_highIPTW_lowIIW$msemat
-colnames(msemat_highIPTW_lowIIW) <- c("Trimmed Before", "Trimmed After")
-msemat_highIPTW_lowIIW <- melt(msemat_highIPTW_lowIIW)
-
-resultsmat_highIPTW_lowIIW <- cbind(biasmat_highIPTW_lowIIW, varmat_highIPTW_lowIIW$value, msemat_highIPTW_lowIIW$value)
-colnames(resultsmat_highIPTW_lowIIW) <- c("Percentile", "Group", "Bias", "Variance", "MSE")
-
-# bias plot
-p1_highIPTW_lowIIW <- ggplot(resultsmat_highIPTW_lowIIW, aes(x = Percentile, y = Bias, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8) +
-  geom_hline(yintercept = 0, color = "red", linetype = "dashed")+ 
-  theme(legend.title=element_blank())+
-  xlab("Threshold (Percentile)") +
-  ylab("Rel. Bias") +
-  ylim(-0.3, 0.9) +
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-### Variance plots
-p2_highIPTW_lowIIW <- ggplot(resultsmat_highIPTW_lowIIW, aes(x = Percentile, y = Variance, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8) + 
-  theme(legend.title=element_blank())+
-  xlab("Threshold (Percentile)")+
-  ylim(0.015, 0.03)+
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-
-
-### MSE plots
-p3_highIPTW_lowIIW <- ggplot(resultsmat_highIPTW_lowIIW, aes(x = Percentile, y = MSE, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8)+ 
-  theme(legend.title=element_blank()) +
-  xlab("Threshold (Percentile)")+
-  ylim(0, 0.2)+
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-
-combined_highIPTW_lowIIW <- p1_highIPTW_lowIIW + p2_highIPTW_lowIIW + p3_highIPTW_lowIIW & theme(legend.position = "bottom")
-# combined_highIPTW_lowIIW + 
-#   plot_layout(guides = "collect") +
-#   plot_annotation(title = "Results: High IPTW, Low IIW")
-
-
 ### determine minimum bias, var, mse, etc
-resultsmat_highIPTW_lowIIW_first <- resultsmat_highIPTW_lowIIW[resultsmat_highIPTW_lowIIW$Group == "Trimmed Before", ]
-resultsmat_highIPTW_lowIIW_after <- resultsmat_highIPTW_lowIIW[resultsmat_highIPTW_lowIIW$Group == "Trimmed After", ]
+
+#bias closest to zero
+bias_highlow <- weightrimresults_highIPTW_lowIIW$biasmat
+mse_highlow <- weightrimresults_highIPTW_lowIIW$msemat
+coverage_highlow <- weightrimresults_highIPTW_lowIIW$coveragemat
+
+bias_highlow[which(abs(bias_highlow$Bias) == min(abs(bias_highlow$Bias))),] 
+# 98th percentile, trimmed after
+# bias = 0.083
 
 
-#trimming first
-resultsmat_highIPTW_lowIIW_first[resultsmat_highIPTW_lowIIW_first$Bias == min(abs(resultsmat_highIPTW_lowIIW_first$Bias)), ]
-resultsmat_highIPTW_lowIIW_first[resultsmat_highIPTW_lowIIW_first$Variance == min(abs(resultsmat_highIPTW_lowIIW_first$Variance)), ]
-resultsmat_highIPTW_lowIIW_first[resultsmat_highIPTW_lowIIW_first$MSE == min(abs(resultsmat_highIPTW_lowIIW_first$MSE)), ]
+bias_highlow[bias_highlow$Percentile==95, ]
+# compared to bias =  0.127 for trimmed first, 0.103 for trimmed after
 
-#trimming after
-resultsmat_highIPTW_lowIIW_after[resultsmat_highIPTW_lowIIW_after$Bias == min(abs(resultsmat_highIPTW_lowIIW_after$Bias)), ]
-resultsmat_highIPTW_lowIIW_after[resultsmat_highIPTW_lowIIW_after$Variance == min(abs(resultsmat_highIPTW_lowIIW_after$Variance)), ]
-resultsmat_highIPTW_lowIIW_after[resultsmat_highIPTW_lowIIW_after$MSE == min(abs(resultsmat_highIPTW_lowIIW_after$MSE)), ]
+
+mse_highlow[which(abs(mse_highlow$MSE) == min(abs(mse_highlow$MSE))),] 
+#57-66th percentile (MSE = 0.428) for both trimmed after
+
+mse_highlow[mse_highlow$Percentile==95, ]
+# MSE =  0.500 for trimmed first, 
+# MSE =  for 0.524 trimmed after
+
+coverage_highlow[coverage_highlow$Percentile==95, ]
+# 0.869trimmed first,
+# 0.853 trimmed after
+
+coverage_highlow[coverage_highlow$Percentile==100, ]
+#0.799
+
+highlowplots <- plotWeightTrimmingResults(biasmat = weightrimresults_highIPTW_lowIIW$biasmat,
+                                                         varmat = weightrimresults_highIPTW_lowIIW$varmat,
+                                                         msemat = weightrimresults_highIPTW_lowIIW$msemat,
+                                                         coveragemat = weightrimresults_highIPTW_lowIIW$coveragemat)
+
 
 
 
@@ -368,7 +259,7 @@ tau = 7
 N = 1000
 
 weighttrimresults_lowIPTW_moderateIIW<- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
-                                          alpha0, alpha1, tau, baseline = F)
+                                          alpha0, alpha1, tau, ncutpts = 2)
 saveRDS(weighttrimresults_lowIPTW_moderateIIW, "weighttrimresults_lowIPTW_moderateIIW.rds")
 weighttrimresults_lowIPTW_moderateIIW <- readRDS("weighttrimresults_lowIPTW_moderateIIW.rds")
 
@@ -379,76 +270,42 @@ weighttrimresults_lowIPTW_moderateIIW$othermat_iiw
 weighttrimresults_lowIPTW_moderateIIW$othermat_fiptiw
 
 
-biasmat_lowIPTW_moderateIIW <- weighttrimresults_lowIPTW_moderateIIW$biasmat
-colnames(biasmat_lowIPTW_moderateIIW) <- c("Trimmed Before", "Trimmed After")
-biasmat_lowIPTW_moderateIIW<- melt(biasmat_lowIPTW_moderateIIW)
-
-varmat_lowIPTW_moderateIIW<- weighttrimresults_lowIPTW_moderateIIW$varmat
-colnames(varmat_lowIPTW_moderateIIW) <- c("Trimmed Before", "Trimmed After")
-varmat_lowIPTW_moderateIIW <- melt(varmat_lowIPTW_moderateIIW)
-
-msemat_lowIPTW_moderateIIW <- weighttrimresults_lowIPTW_moderateIIW$msemat
-colnames(msemat_lowIPTW_moderateIIW) <- c("Trimmed Before", "Trimmed After")
-msemat_lowIPTW_moderateIIW <- melt(msemat_lowIPTW_moderateIIW)
-
-resultsmat_lowIPTW_moderateIIW <- cbind(biasmat_lowIPTW_moderateIIW, varmat_lowIPTW_moderateIIW$value, msemat_lowIPTW_moderateIIW$value)
-colnames(resultsmat_lowIPTW_moderateIIW) <- c("Percentile", "Group", "Bias", "Variance", "MSE")
-
-# bias plot
-p1_lowIPTW_moderateIIW <- ggplot(resultsmat_lowIPTW_moderateIIW, aes(x = Percentile, y = Bias, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8) +
-  geom_hline(yintercept = 0, color = "red", linetype = "dashed")+ 
-  theme(legend.title=element_blank())+
-  xlab("Threshold (Percentile)")+
-  ylab("Rel. Bias")+
-  ylim(-0.3, 0.9)+
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-### Variance plots
-p2_lowIPTW_moderateIIW <- ggplot(resultsmat_lowIPTW_moderateIIW, aes(x = Percentile, y = Variance, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8) + 
-  theme(legend.title=element_blank())+
-  xlab("Threshold (Percentile)")+
-  ylim(0.015, 0.03)+
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-
-### MSE plots
-p3_lowIPTW_moderateIIW <- ggplot(resultsmat_lowIPTW_moderateIIW, aes(x = Percentile, y = MSE, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8)+ 
-  theme(legend.title=element_blank()) +
-  xlab("Threshold (Percentile)")+
-  ylim(0, 0.2)+
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-
-combined_lowIPTW_moderateIIW <- p1_lowIPTW_moderateIIW + p2_lowIPTW_moderateIIW + p3_lowIPTW_moderateIIW & theme(legend.position = "bottom")
-# combined_lowIPTW_moderateIIW + 
-#   plot_layout(guides = "collect") +
-#   plot_annotation(title = "Results: Moderate IPTW, Moderate IIW")
 
 
 ### determine minimum bias, var, mse, etc
-resultsmat_lowIPTW_moderateIIW_first <- resultsmat_lowIPTW_moderateIIW[resultsmat_lowIPTW_moderateIIW$Group == "Trimmed Before", ]
-resultsmat_lowIPTW_moderateIIW_after <- resultsmat_lowIPTW_moderateIIW[resultsmat_lowIPTW_moderateIIW$Group == "Trimmed After", ]
+
+#bias closest to zero
+bias_lowmod <- weighttrimresults_lowIPTW_moderateIIW$biasmat
+mse_lowmod <- weighttrimresults_lowIPTW_moderateIIW$msemat
+coverage_lowmod <- weighttrimresults_lowIPTW_moderateIIW$coveragemat
+
+bias_lowmod[which(abs(bias_lowmod$Bias) == min(abs(bias_lowmod$Bias))),] 
+# 100th percentile, trimmed first
+# bias = 0.075
+
+bias_lowmod[bias_lowmod$Percentile==95, ]
+# compared to bias = 0.141 for trimmed first, 0.141 for trimmed after
 
 
+mse_lowmod[which(abs(mse_lowmod$MSE) == min(abs(mse_lowmod$MSE))),] 
+#98th percentile (MSE 0.455) for both trimmed first and after
 
-#trimming first
-resultsmat_lowIPTW_moderateIIW_first[resultsmat_lowIPTW_moderateIIW_first$Bias == -min(abs(resultsmat_lowIPTW_moderateIIW_first$Bias)), ]
-resultsmat_lowIPTW_moderateIIW_first[resultsmat_lowIPTW_moderateIIW_first$Variance == min(abs(resultsmat_lowIPTW_moderateIIW_first$Variance)), ]
-resultsmat_lowIPTW_moderateIIW_first[resultsmat_lowIPTW_moderateIIW_first$MSE == min(abs(resultsmat_lowIPTW_moderateIIW_first$MSE)), ]
+mse_lowmod[mse_lowmod$Percentile==95, ]
+# MSE = 0.280 for trimmed first, 
+# MSE = 0.362 for trimmed after
 
-#trimming after
-resultsmat_lowIPTW_moderateIIW_after[resultsmat_lowIPTW_moderateIIW_after$Bias == -min(abs(resultsmat_lowIPTW_moderateIIW_after$Bias)), ]
-resultsmat_lowIPTW_moderateIIW_after[resultsmat_lowIPTW_moderateIIW_after$Variance == min(abs(resultsmat_lowIPTW_moderateIIW_after$Variance)), ]
-resultsmat_lowIPTW_moderateIIW_after[resultsmat_lowIPTW_moderateIIW_after$MSE == min(abs(resultsmat_lowIPTW_moderateIIW_after$MSE)), ]
+coverage_lowmod[coverage_lowmod$Percentile==95, ]
+# 0.908 trimmed first,
+# 0.866 trimmed after
+
+coverage_lowmod[coverage_lowmod$Percentile==100, ]
+# 0.925 trimmed first,
+
+
+lowmodplots <- plotWeightTrimmingResults(biasmat = weighttrimresults_lowIPTW_moderateIIW$biasmat,
+                                                         varmat = weighttrimresults_lowIPTW_moderateIIW$varmat,
+                                                         msemat = weighttrimresults_lowIPTW_moderateIIW$msemat,
+                                                         coveragemat = weighttrimresults_lowIPTW_moderateIIW$coveragemat)
 
 
 
@@ -468,10 +325,10 @@ alpha0 = 0
 alpha1 = 0.5
 tau = 7
 N = 1000
-# 
-weighttrimresults_lowIPTW_highIIW<- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
-                                                                      alpha0, alpha1, tau, baseline = F)
-saveRDS(weighttrimresults_lowIPTW_highIIW, "weighttrimresults_lowIPTW_highIIW.rds")
+
+# weighttrimresults_lowIPTW_highIIW<- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
+#                                                                       alpha0, alpha1, tau, ncutpts = 2)
+# saveRDS(weighttrimresults_lowIPTW_highIIW, "weighttrimresults_lowIPTW_highIIW.rds")
 weighttrimresults_lowIPTW_highIIW <- readRDS("weighttrimresults_lowIPTW_highIIW.rds")
 
 
@@ -481,76 +338,45 @@ weighttrimresults_lowIPTW_highIIW$othermat_iiw
 weighttrimresults_lowIPTW_highIIW$othermat_fiptiw
 
 
-biasmat_lowIPTW_highIIW <- weighttrimresults_lowIPTW_highIIW$biasmat
-colnames(biasmat_lowIPTW_highIIW) <- c("Trimmed Before", "Trimmed After")
-biasmat_lowIPTW_highIIW<- melt(biasmat_lowIPTW_highIIW)
-
-varmat_lowIPTW_highIIW<- weighttrimresults_lowIPTW_highIIW$varmat
-colnames(varmat_lowIPTW_highIIW) <- c("Trimmed Before", "Trimmed After")
-varmat_lowIPTW_highIIW <- melt(varmat_lowIPTW_highIIW)
-
-msemat_lowIPTW_highIIW <- weighttrimresults_lowIPTW_highIIW$msemat
-colnames(msemat_lowIPTW_highIIW) <- c("Trimmed Before", "Trimmed After")
-msemat_lowIPTW_highIIW <- melt(msemat_lowIPTW_highIIW)
-
-resultsmat_lowIPTW_highIIW <- cbind(biasmat_lowIPTW_highIIW, varmat_lowIPTW_highIIW$value, msemat_lowIPTW_highIIW$value)
-colnames(resultsmat_lowIPTW_highIIW) <- c("Percentile", "Group", "Bias", "Variance", "MSE")
-
-# bias plot
-p1_lowIPTW_highIIW <- ggplot(resultsmat_lowIPTW_highIIW, aes(x = Percentile, y = Bias, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8) +
-  geom_hline(yintercept = 0, color = "red", linetype = "dashed")+ 
-  theme(legend.title=element_blank())+
-  xlab("Threshold (Percentile)")+
-  ylab("Rel. Bias")+
-  ylim(-0.3, 0.9)+
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-### Variance plots
-p2_lowIPTW_highIIW <- ggplot(resultsmat_lowIPTW_highIIW, aes(x = Percentile, y = Variance, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8) + 
-  theme(legend.title=element_blank())+
-  xlab("Threshold (Percentile)")+
-  ylim(0.015, 0.03)+
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-### MSE plots
-p3_lowIPTW_highIIW <- ggplot(resultsmat_lowIPTW_highIIW, aes(x = Percentile, y = MSE, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8)+ 
-  theme(legend.title=element_blank()) +
-  xlab("Threshold (Percentile)")+
-  ylim(0, 0.2)+
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-
-combined_lowIPTW_highIIW <- p1_lowIPTW_highIIW + p2_lowIPTW_highIIW + p3_lowIPTW_highIIW & theme(legend.position = "bottom")
-# combined_lowIPTW_highIIW + 
-#   plot_layout(guides = "collect") +
-#   plot_annotation(title = "Results: Moderate IPTW, Moderate IIW")
 
 
 ### determine minimum bias, var, mse, etc
-resultsmat_lowIPTW_highIIW_first <- resultsmat_lowIPTW_highIIW[resultsmat_lowIPTW_highIIW$Group == "Trimmed Before", ]
-resultsmat_lowIPTW_highIIW_after <- resultsmat_lowIPTW_highIIW[resultsmat_lowIPTW_highIIW$Group == "Trimmed After", ]
+
+#bias closest to zero
+bias_lowhigh <- weighttrimresults_lowIPTW_highIIW$biasmat
+mse_lowhigh <- weighttrimresults_lowIPTW_highIIW$msemat
+coverage_lowhigh <- weighttrimresults_lowIPTW_highIIW$coveragemat
+
+bias_lowhigh[which(abs(bias_lowhigh$Bias) == min(abs(bias_lowhigh$Bias))),] 
+# 100th percentile, trimmed first
+# bias = 0.095
+
+bias_lowhigh[bias_lowhigh$Percentile==95, ]
+# compared to bias = 0.233 for trimmed first, 0.401 for trimmed after
+
+
+mse_lowhigh[which(abs(mse_lowhigh$MSE) == min(abs(mse_lowhigh$MSE))),] 
+#96-98th percentile (MSE =0.385) for trimmed first
+
+mse_lowhigh[mse_lowhigh$Percentile==95, ]
+# MSE = 0.388 for trimmed first, 
+# MSE = 0.461 for trimmed after
+
+coverage_lowhigh[coverage_lowhigh$Percentile==95, ]
+#  0.884 trimmed first,
+# 0.835 trimmed after
+
+lowhighplots <- plotWeightTrimmingResults(biasmat = weighttrimresults_lowIPTW_highIIW$biasmat,
+                                                         varmat = weighttrimresults_lowIPTW_highIIW$varmat,
+                                                         msemat = weighttrimresults_lowIPTW_highIIW$msemat,
+                                                         coveragemat = weighttrimresults_lowIPTW_highIIW$coveragemat)
 
 
 
 
-#trimming first
-resultsmat_lowIPTW_highIIW_first[resultsmat_lowIPTW_highIIW_first$Bias == -min(abs(resultsmat_lowIPTW_highIIW_first$Bias)), ]
-resultsmat_lowIPTW_highIIW_first[resultsmat_lowIPTW_highIIW_first$Variance == min(abs(resultsmat_lowIPTW_highIIW_first$Variance)), ]
-resultsmat_lowIPTW_highIIW_first[resultsmat_lowIPTW_highIIW_first$MSE == min(abs(resultsmat_lowIPTW_highIIW_first$MSE)), ]
 
-#trimming after
-resultsmat_lowIPTW_highIIW_after[resultsmat_lowIPTW_highIIW_after$Bias == -min(abs(resultsmat_lowIPTW_highIIW_after$Bias)), ]
-resultsmat_lowIPTW_highIIW_after[resultsmat_lowIPTW_highIIW_after$Variance == min(abs(resultsmat_lowIPTW_highIIW_after$Variance)), ]
-resultsmat_lowIPTW_highIIW_after[resultsmat_lowIPTW_highIIW_after$MSE == min(abs(resultsmat_lowIPTW_highIIW_after$MSE)), ]
+
+
 
 
 
@@ -569,10 +395,10 @@ alpha0 = 0
 alpha1 = 3.5
 tau = 7
 N = 1000
-
-weighttrimresults_moderateIPTW_moderateIIW<- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
-                                                                  alpha0, alpha1, tau, baseline = F)
-saveRDS(weighttrimresults_moderateIPTW_moderateIIW, "weighttrimresults_moderateIPTW_moderateIIW.rds")
+# 
+# weighttrimresults_moderateIPTW_moderateIIW<- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
+#                                                                   alpha0, alpha1, tau, ncutpts = 2)
+# saveRDS(weighttrimresults_moderateIPTW_moderateIIW, "weighttrimresults_moderateIPTW_moderateIIW.rds")
 weighttrimresults_moderateIPTW_moderateIIW <- readRDS("weighttrimresults_moderateIPTW_moderateIIW.rds")
 
 
@@ -582,74 +408,42 @@ weighttrimresults_moderateIPTW_moderateIIW$othermat_iiw
 weighttrimresults_moderateIPTW_moderateIIW$othermat_fiptiw
 
 
-biasmat_moderateIPTW_moderateIIW <- weighttrimresults_moderateIPTW_moderateIIW$biasmat
-colnames(biasmat_moderateIPTW_moderateIIW) <- c("Trimmed Before", "Trimmed After")
-biasmat_moderateIPTW_moderateIIW<- melt(biasmat_moderateIPTW_moderateIIW)
-
-varmat_moderateIPTW_moderateIIW<- weighttrimresults_moderateIPTW_moderateIIW$varmat
-colnames(varmat_moderateIPTW_moderateIIW) <- c("Trimmed Before", "Trimmed After")
-varmat_moderateIPTW_moderateIIW <- melt(varmat_moderateIPTW_moderateIIW)
-
-msemat_moderateIPTW_moderateIIW <- weighttrimresults_moderateIPTW_moderateIIW$msemat
-colnames(msemat_moderateIPTW_moderateIIW) <- c("Trimmed Before", "Trimmed After")
-msemat_moderateIPTW_moderateIIW <- melt(msemat_moderateIPTW_moderateIIW)
-
-resultsmat_moderateIPTW_moderateIIW <- cbind(biasmat_moderateIPTW_moderateIIW, varmat_moderateIPTW_moderateIIW$value, msemat_moderateIPTW_moderateIIW$value)
-colnames(resultsmat_moderateIPTW_moderateIIW) <- c("Percentile", "Group", "Bias", "Variance", "MSE")
-
-# bias plot
-p1_moderateIPTW_moderateIIW <- ggplot(resultsmat_moderateIPTW_moderateIIW, aes(x = Percentile, y = Bias, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8) +
-  geom_hline(yintercept = 0, color = "red", linetype = "dashed")+ 
-  theme(legend.title=element_blank())+
-  xlab("Threshold (Percentile)")+
-  ylab("Rel. Bias")+
-  ylim(-0.3, 0.9)+
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-### Variance plots
-p2_moderateIPTW_moderateIIW <- ggplot(resultsmat_moderateIPTW_moderateIIW, aes(x = Percentile, y = Variance, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8) + 
-  theme(legend.title=element_blank())+
-  xlab("Threshold (Percentile)") +
-  ylim(0.015, 0.03)+
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-### MSE plots
-p3_moderateIPTW_moderateIIW <- ggplot(resultsmat_moderateIPTW_moderateIIW, aes(x = Percentile, y = MSE, color = Group, shape = Group)) + 
-  geom_line() + 
-  geom_point(size = 0.8)+ 
-  theme(legend.title=element_blank()) +
-  xlab("Threshold (Percentile)")+
-  ylim(0, 0.2)+
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=10))
-
-
-combined_moderateIPTW_moderateIIW <- p1_moderateIPTW_moderateIIW + p2_moderateIPTW_moderateIIW + p3_moderateIPTW_moderateIIW & theme(legend.position = "bottom")
-# combined_moderateIPTW_moderateIIW + 
-#   plot_layout(guides = "collect") +
-#   plot_annotation(title = "Results: Moderate IPTW, Moderate IIW")
 
 
 ### determine minimum bias, var, mse, etc
-resultsmat_moderateIPTW_moderateIIW_first <- resultsmat_moderateIPTW_moderateIIW[resultsmat_moderateIPTW_moderateIIW$Group == "Trimmed Before", ]
-resultsmat_moderateIPTW_moderateIIW_after <- resultsmat_moderateIPTW_moderateIIW[resultsmat_moderateIPTW_moderateIIW$Group == "Trimmed After", ]
+
+#bias closest to zero
+bias_modmod <- weighttrimresults_moderateIPTW_moderateIIW$biasmat
+mse_modmod <- weighttrimresults_moderateIPTW_moderateIIW$msemat
+coverage_modmod <- weighttrimresults_moderateIPTW_moderateIIW$coveragemat
+
+bias_modmod[which(abs(bias_modmod$Bias) == min(abs(bias_modmod$Bias))),] 
+# 99th percentile, trimmed first
+# bias = 
+
+bias_modmod[bias_modmod$Percentile==95, ]
+# compared to bias =  for trimmed first,  for trimmed after
 
 
-#trimming first
-resultsmat_moderateIPTW_moderateIIW_first[resultsmat_moderateIPTW_moderateIIW_first$Bias == min(abs(resultsmat_moderateIPTW_moderateIIW_first$Bias)), ]
-resultsmat_moderateIPTW_moderateIIW_first[resultsmat_moderateIPTW_moderateIIW_first$Variance == min(abs(resultsmat_moderateIPTW_moderateIIW_first$Variance)), ]
-resultsmat_moderateIPTW_moderateIIW_first[resultsmat_moderateIPTW_moderateIIW_first$MSE == min(abs(resultsmat_moderateIPTW_moderateIIW_first$MSE)), ]
+mse_modmod[which(abs(mse_modmod$MSE) == min(abs(mse_modmod$MSE))),] 
+#98th percentile (MSE ) for both trimmed first and after
 
-#trimming after
-resultsmat_moderateIPTW_moderateIIW_after[resultsmat_moderateIPTW_moderateIIW_after$Bias == min(abs(resultsmat_moderateIPTW_moderateIIW_after$Bias)), ]
-resultsmat_moderateIPTW_moderateIIW_after[resultsmat_moderateIPTW_moderateIIW_after$Variance == min(abs(resultsmat_moderateIPTW_moderateIIW_after$Variance)), ]
-resultsmat_moderateIPTW_moderateIIW_after[resultsmat_moderateIPTW_moderateIIW_after$MSE == min(abs(resultsmat_moderateIPTW_moderateIIW_after$MSE)), ]
+mse_modmod[mse_modmod$Percentile==95, ]
+# MSE =  for trimmed first, 
+# MSE =  for trimmed after
+
+coverage_modmod[coverage_modmod$Percentile==95, ]
+#  trimmed first,
+#  trimmed after
+
+modmodplots <- plotWeightTrimmingResults(biasmat = weighttrimresults_modIPTW_modIIW$biasmat,
+                                                         varmat = weighttrimresults_modIPTW_modIIW$varmat,
+                                                         msemat = weighttrimresults_modIPTW_modIIW$msemat,
+                                                         coveragemat = weighttrimresults_modIPTW_modIIW$coveragemat)
+
+
+
+
 
 
 
