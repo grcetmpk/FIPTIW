@@ -1215,10 +1215,10 @@ makeBoxPlotsATE <- function(atemat, eta2vec){
   atemat <- gather(atemat, "Method", "ATE", -c(eta1, eta2, eta3))
   atemat$Method <- factor(atemat$Method, levels = c("Naive", "IIW", "IPTW", "FIPTIW", "FIPTICW"))
   
-  # ymin <- min(atemat$ATE)
-  # ymax <- max(atemat$ATE)
-  ymin <- -5.2
-  ymax <- 5
+  ymin <- min(atemat$ATE)
+  ymax <- max(atemat$ATE)
+  # ymin <- -2
+  # ymax <- 5
   
   
   #setup plot for legend
@@ -2127,8 +2127,8 @@ plotWeightTrimmingResults <- function(results){
     geom_hline(yintercept = 0, color = "red", linetype = "dashed")+
     theme(legend.title=element_blank())+
     xlab("Threshold (Percentile)") +
-    ylab("Rel. Bias")+
-    ylim(-0.5, 0.5) +
+    ylab("Bias")+
+    ylim(0.0, 0.4) +
     theme(axis.text=element_text(size=10),
           axis.title=element_text(size=10))
 
@@ -2152,7 +2152,7 @@ plotWeightTrimmingResults <- function(results){
     geom_point(size = 0.8)+ 
     theme(legend.title=element_blank()) +
     xlab("Threshold (Percentile)")+
-    ylim(0.1, 0.3)+
+    ylim(0.1, 0.8)+
     theme(axis.text=element_text(size=10),
           axis.title=element_text(size=10))
   
@@ -2161,7 +2161,7 @@ plotWeightTrimmingResults <- function(results){
     geom_point(size = 0.8)+ 
     theme(legend.title=element_blank()) +
     xlab("Threshold (Percentile)")+
-    ylim(0.80, 1.05)+
+    ylim(0.70, 0.97)+
     theme(axis.text=element_text(size=10),
           axis.title=element_text(size=10)) +
     geom_hline(yintercept = 0.95, color = "red", linetype = "dashed")

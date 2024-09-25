@@ -185,15 +185,15 @@ kable(coveragemat_n50_binary, booktabs = T,
 ### binary n = 500, with splines
 
 set.seed(643)
-results_censoring_n500_binary <- simulateALLFIPTICW_CENS(N, n = 500, beta1, beta2, beta3, gamma1, gamma2, gamma3, 
-                                                 alpha0, alpha1, tau, outcome = "binary",
-                                                 censinform = T, eta1vec, eta2vec, eta3vec,
-                                                 usesplines = T, ncutpts =  2, outputfulldatalist = T,
-                                                 inParallel = T, nclusters = nclusters)
+# results_censoring_n500_binary <- simulateALLFIPTICW_CENS(N, n = 500, beta1, beta2, beta3, gamma1, gamma2, gamma3, 
+#                                                  alpha0, alpha1, tau, outcome = "binary",
+#                                                  censinform = T, eta1vec, eta2vec, eta3vec,
+#                                                  usesplines = T, ncutpts =  2, outputfulldatalist = T,
+#                                                  inParallel = T, nclusters = nclusters)
 
 
 # saveRDS(results_censoring_n500_binary, "results_censoring_n500_binary.rds")
-# results_censoring_n500_binary <- readRDS("results_censoring_n500_binary.rds")
+results_censoring_n500_binary <- readRDS("results_censoring_n500_binary.rds")
 
 plot_censoring_n500_binary <- makeBoxPlotsATE(results_censoring_n500_binary$fulldatalist, eta2vec)
 annotate_figure(plot_censoring_n500_binary, top = text_grob("Combined Results for n = 500, Binary Outcome", face = "bold", size = 20))
@@ -489,6 +489,24 @@ plots_modIPTWmodIIW <- plotWeightTrimmingResults(weighttrimresults_modIPTW_modII
 
 
 
+allplots_binary <- wrap_elements(grid::textGrob('Low Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_highIIW$biasplot + plots_lowIPTW_highIIW$mseplot  + plots_lowIPTW_highIIW$coverageplot +
+  wrap_elements(grid::textGrob('Moderate Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_modIPTW_lowIIW$biasplot + plots_modIPTW_lowIIW$mseplot + plots_modIPTW_lowIIW$coverageplot +
+  wrap_elements(grid::textGrob('High Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_highIPTW_lowIIW$biasplot + plots_highIPTW_lowIIW$mseplot + plots_highIPTW_lowIIW$coverageplot +
+  wrap_elements(grid::textGrob('Low Trt \n Moderate Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_modIIW$biasplot + plots_lowIPTW_modIIW$mseplot + plots_lowIPTW_modIIW$coverageplot +
+  wrap_elements(grid::textGrob('Low Trt \n High Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_highIIW$biasplot +plots_lowIPTW_highIIW$mseplot +plots_lowIPTW_highIIW$coverageplot +
+  wrap_elements(grid::textGrob('Moderate Trt \n Moderate Obs', gp = gpar( fontsize = 10))) + plots_modIPTWmodIIW$biasplot + plots_modIPTWmodIIW$mseplot + plots_modIPTWmodIIW$coverageplot & theme(legend.position = "bottom")
+
+
+allplots_binary + 
+  plot_layout(guides = "collect", ncol = 4) +
+  plot_annotation(title = "Simulation III Results: Binary Outcome with Intercept Estimated by Cubic Splines")
+
+
+
+
+
+
+
 ######### Binary Outcome No Splines ######
 
 
@@ -603,8 +621,8 @@ alpha0 = 0
 alpha1 = 3.5
 
 set.seed(99)
-# weighttrimresults_modIPTW_modIIW_nospline <- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3, 
-#                                                                   alpha0, alpha1, tau, usesplines = T, ncutpts = 2, outcome = "binary")
+# weighttrimresults_modIPTW_modIIW_nospline <- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
+#                                                                   alpha0, alpha1, tau, usesplines = F, ncutpts = 2, outcome = "binary")
 # saveRDS(weighttrimresults_modIPTW_modIIW_nospline, "weighttrimresults_modIPTW_modIIW_nospline.rds")
 weighttrimresults_modIPTW_modIIW_nospline <- readRDS("weighttrimresults_modIPTW_modIIW_nospline.rds")
 compareMinimums(weighttrimresults_modIPTW_modIIW_nospline)
@@ -612,7 +630,17 @@ compareMinimums(weighttrimresults_modIPTW_modIIW_nospline)
 plots_modIPTWmodIIW_nospline <- plotWeightTrimmingResults(weighttrimresults_modIPTW_modIIW_nospline)
 
 
+allplots_binary_nospline <- wrap_elements(grid::textGrob('Low Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_highIIW_nospline$biasplot + plots_lowIPTW_highIIW_nospline$mseplot  + plots_lowIPTW_highIIW_nospline$coverageplot +
+  wrap_elements(grid::textGrob('Moderate Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_modIPTW_lowIIW_nospline$biasplot + plots_modIPTW_lowIIW_nospline$mseplot + plots_modIPTW_lowIIW_nospline$coverageplot +
+  wrap_elements(grid::textGrob('High Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_highIPTW_lowIIW_nospline$biasplot + plots_highIPTW_lowIIW_nospline$mseplot + plots_highIPTW_lowIIW_nospline$coverageplot +
+  wrap_elements(grid::textGrob('Low Trt \n Moderate Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_modIIW_nospline$biasplot + plots_lowIPTW_modIIW_nospline$mseplot + plots_lowIPTW_modIIW_nospline$coverageplot +
+  wrap_elements(grid::textGrob('Low Trt \n High Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_highIIW_nospline$biasplot +plots_lowIPTW_highIIW_nospline$mseplot +plots_lowIPTW_highIIW_nospline$coverageplot +
+  wrap_elements(grid::textGrob('Moderate Trt \n Moderate Obs', gp = gpar( fontsize = 10))) + plots_modIPTWmodIIW_nospline$biasplot + plots_modIPTWmodIIW_nospline$mseplot + plots_modIPTWmodIIW_nospline$coverageplot & theme(legend.position = "bottom")
 
+
+allplots_binary_nospline + 
+  plot_layout(guides = "collect", ncol = 4) +
+  plot_annotation(title = "Simulation III Results: Binary Outcome with Offset (No Spline)")
 
 
 
@@ -742,7 +770,22 @@ plots_modIPTWmodIIW_continuous <- plotWeightTrimmingResults(weighttrimresults_mo
 
 
 
-#### ~~~~~~~~~~~~ Continuous Outcome with splines (n = 100) ~~~~~~~~~~~~~~~~~~~ #
+allplots_continuous <- wrap_elements(grid::textGrob('Low Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_highIIW_continuous$biasplot + plots_lowIPTW_highIIW_continuous$mseplot  + plots_lowIPTW_highIIW_continuous$coverageplot +
+  wrap_elements(grid::textGrob('Moderate Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_modIPTW_lowIIW_continuous$biasplot + plots_modIPTW_lowIIW_continuous$mseplot + plots_modIPTW_lowIIW_continuous$coverageplot +
+  wrap_elements(grid::textGrob('High Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_highIPTW_lowIIW_continuous$biasplot + plots_highIPTW_lowIIW_continuous$mseplot + plots_highIPTW_lowIIW_continuous$coverageplot +
+  wrap_elements(grid::textGrob('Low Trt \n Moderate Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_modIIW_continuous$biasplot + plots_lowIPTW_modIIW_continuous$mseplot + plots_lowIPTW_modIIW_continuous$coverageplot +
+  wrap_elements(grid::textGrob('Low Trt \n High Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_highIIW_continuous$biasplot +plots_lowIPTW_highIIW_continuous$mseplot +plots_lowIPTW_highIIW_continuous$coverageplot +
+  wrap_elements(grid::textGrob('Moderate Trt \n Moderate Obs', gp = gpar( fontsize = 10))) + plots_modIPTWmodIIW_continuous$biasplot + plots_modIPTWmodIIW_continuous$mseplot + plots_modIPTWmodIIW_continuous$coverageplot & theme(legend.position = "bottom")
+
+
+allplots_continuous+ 
+  plot_layout(guides = "collect", ncol = 4) +
+  plot_annotation(title = "Simulation III Results: Normally-Distributed Outcome with Intercept Estimated by Cubic Splines")
+
+
+
+
+#### ~~~~~~~~~~~~ Continuous Outcome with no splines (n = 100) ~~~~~~~~~~~~~~~~~~~ #
 
 ### LOW-LOW
 
@@ -863,6 +906,18 @@ compareMinimums(weighttrimresults_modIPTW_modIIW_continuous_nospline)
 
 plots_modIPTWmodIIW_continuous_nospline <- plotWeightTrimmingResults(weighttrimresults_modIPTW_modIIW_continuous_nospline)
 
+
+allplots_continuous_nospline <- wrap_elements(grid::textGrob('Low Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_highIIW_continuous_nospline$biasplot + plots_lowIPTW_highIIW_continuous_nospline$mseplot  + plots_lowIPTW_highIIW_continuous_nospline$coverageplot +
+  wrap_elements(grid::textGrob('Moderate Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_modIPTW_lowIIW_continuous_nospline$biasplot + plots_modIPTW_lowIIW_continuous_nospline$mseplot + plots_modIPTW_lowIIW_continuous_nospline$coverageplot +
+  wrap_elements(grid::textGrob('High Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_highIPTW_lowIIW_continuous_nospline$biasplot + plots_highIPTW_lowIIW_continuous_nospline$mseplot + plots_highIPTW_lowIIW_continuous_nospline$coverageplot +
+  wrap_elements(grid::textGrob('Low Trt \n Moderate Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_modIIW_continuous_nospline$biasplot + plots_lowIPTW_modIIW_continuous_nospline$mseplot + plots_lowIPTW_modIIW_continuous_nospline$coverageplot +
+  wrap_elements(grid::textGrob('Low Trt \n High Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_highIIW_continuous_nospline$biasplot +plots_lowIPTW_highIIW_continuous_nospline$mseplot +plots_lowIPTW_highIIW_continuous_nospline$coverageplot +
+  wrap_elements(grid::textGrob('Moderate Trt \n Moderate Obs', gp = gpar( fontsize = 10))) + plots_modIPTWmodIIW_continuous_nospline$biasplot + plots_modIPTWmodIIW_continuous_nospline$mseplot + plots_modIPTWmodIIW_continuous_nospline$coverageplot & theme(legend.position = "bottom")
+
+
+allplots_continuous_nospline+ 
+  plot_layout(guides = "collect", ncol = 4) +
+  plot_annotation(title = "Simulation III Results: Normally-Distributed Outcome with Offset (No Spline)")
 
 
 
