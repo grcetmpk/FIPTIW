@@ -34,6 +34,15 @@ require(grid)
 require(ggpubr)
 require(dplyr)
 
+outcome = "continuous"
+
+############################################################# 
+##################### WITH SPLINES ##########################
+############################################################# 
+
+
+
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ low IPTW weights, low IIW weights
 #### n = 100 ###
 
@@ -54,7 +63,7 @@ ncutpts = 2
 
 
 # weighttrimresults_lowIPTW_lowIIW<- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
-#                                             alpha0, alpha1, tau, ncutpts = 2)
+#                                             alpha0, alpha1, tau, usesplines = T, outcome = outcome, ncutpts = 2)
 # saveRDS(weighttrimresults_lowIPTW_lowIIW, "weighttrimresults_lowIPTW_lowIIW.rds")
 weighttrimresults_lowIPTW_lowIIW <- readRDS("weighttrimresults_lowIPTW_lowIIW.rds")
 
@@ -120,9 +129,9 @@ tau = 7
 N = 1000
 ncutpts = 2
 
-weightrimresults_moderateIPTW_lowIIW <- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
-                                           alpha0, alpha1, tau, ncutpts = 2)
-saveRDS(weightrimresults_moderateIPTW_lowIIW, "weightrimresults_moderateIPTW_lowIIW.rds")
+# weightrimresults_moderateIPTW_lowIIW <- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
+#                                            alpha0, alpha1, tau, usesplines = T, outcome = outcome, ncutpts = 2)
+# saveRDS(weightrimresults_moderateIPTW_lowIIW, "weightrimresults_moderateIPTW_lowIIW.rds")
 weightrimresults_moderateIPTW_lowIIW <- readRDS("weightrimresults_moderateIPTW_lowIIW.rds")
 
 
@@ -191,10 +200,10 @@ alpha0 = 0
 alpha1 = 5.5
 tau = 7
 N = 1000
-
-weightrimresults_highIPTW_lowIIW <- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
-                                          alpha0, alpha1, tau, ncutpts = 2)
-saveRDS(weightrimresults_highIPTW_lowIIW, "weightrimresults_highIPTW_lowIIW.rds")
+# 
+# weightrimresults_highIPTW_lowIIW <- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
+#                                           alpha0, alpha1, tau, usesplines = T, outcome = outcome, ncutpts = 2)
+# saveRDS(weightrimresults_highIPTW_lowIIW, "weightrimresults_highIPTW_lowIIW.rds")
 weightrimresults_highIPTW_lowIIW <- readRDS("weightrimresults_highIPTW_lowIIW.rds")
 
 weightrimresults_highIPTW_lowIIW$othermat_iptw
@@ -258,9 +267,9 @@ alpha1 = 0.5
 tau = 7
 N = 1000
 
-weighttrimresults_lowIPTW_moderateIIW<- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
-                                          alpha0, alpha1, tau, ncutpts = 2)
-saveRDS(weighttrimresults_lowIPTW_moderateIIW, "weighttrimresults_lowIPTW_moderateIIW.rds")
+# weighttrimresults_lowIPTW_moderateIIW<- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
+#                                           alpha0, alpha1, tau, usesplines = T, outcome = outcome, ncutpts = 2)
+# saveRDS(weighttrimresults_lowIPTW_moderateIIW, "weighttrimresults_lowIPTW_moderateIIW.rds")
 weighttrimresults_lowIPTW_moderateIIW <- readRDS("weighttrimresults_lowIPTW_moderateIIW.rds")
 
 
@@ -327,7 +336,7 @@ tau = 7
 N = 1000
 
 # weighttrimresults_lowIPTW_highIIW<- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
-#                                                                       alpha0, alpha1, tau, ncutpts = 2)
+#                                                                       alpha0, alpha1, tau, usesplines = T, outcome = outcome, ncutpts = 2)
 # saveRDS(weighttrimresults_lowIPTW_highIIW, "weighttrimresults_lowIPTW_highIIW.rds")
 weighttrimresults_lowIPTW_highIIW <- readRDS("weighttrimresults_lowIPTW_highIIW.rds")
 
@@ -397,7 +406,7 @@ tau = 7
 N = 1000
 # 
 # weighttrimresults_moderateIPTW_moderateIIW<- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
-#                                                                   alpha0, alpha1, tau, ncutpts = 2)
+#                                                                   alpha0, alpha1, tau, usesplines = T, outcome = outcome, ncutpts = 2)
 # saveRDS(weighttrimresults_moderateIPTW_moderateIIW, "weighttrimresults_moderateIPTW_moderateIIW.rds")
 weighttrimresults_moderateIPTW_moderateIIW <- readRDS("weighttrimresults_moderateIPTW_moderateIIW.rds")
 
@@ -461,5 +470,434 @@ allplots <- wrap_elements(grid::textGrob('Low Trt \n Low Obs', gp = gpar( fontsi
 allplots + 
   plot_layout(guides = "collect", ncol = 4) +
   plot_annotation(title = "Simulation III Results")
+
+
+
+
+
+
+
+############################################################### 
+##################### WITHOUT SPLINES #########################
+############################################################### 
+
+
+
+
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ low IPTW weights, low IIW weights
+#### n = 100 ###
+
+set.seed(13546)
+n = 100
+beta1 = 0.5
+beta2 = 2
+beta3 = 1
+gamma1 = 0.5
+gamma2 = 0.3
+gamma3 = 0.6
+alpha0 = 0
+alpha1 = 0.5
+tau = 7
+N = 1000
+baseline = F
+ncutpts = 2
+
+
+# 
+# weighttrimresults_lowIPTW_lowIIW_nospline<- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
+#                                             alpha0, alpha1, tau, usesplines = F, outcome = outcome, ncutpts = 2)
+# saveRDS(weighttrimresults_lowIPTW_lowIIW_nospline, "weighttrimresults_lowIPTW_lowIIW_nospline.rds")
+weighttrimresults_lowIPTW_lowIIW_nospline <- readRDS("weighttrimresults_lowIPTW_lowIIW_nospine.rds")
+
+
+# view average weight distribution
+weighttrimresults_lowIPTW_lowIIW_nospline$othermat_iptw
+weighttrimresults_lowIPTW_lowIIW_nospline$othermat_iiw
+weighttrimresults_lowIPTW_lowIIW_nospline$othermat_fiptiw
+
+
+### determine minimum bias, var, mse, etc
+
+#bias closest to zero
+bias_lowlow_nospline <- weighttrimresults_lowIPTW_lowIIW_nospline$biasmat
+mse_lowlow_nospline <- weighttrimresults_lowIPTW_lowIIW_nospline$msemat
+coverage_lowlow_nospline <- weighttrimresults_lowIPTW_lowIIW_nospline$coveragemat
+
+bias_lowlow_nospline[which(abs(bias_lowlow_nospline$Bias) == min(abs(bias_lowlow_nospline$Bias))),] 
+# 99th percentile, trimmed first
+# bias = 0.000
+
+bias_lowlow_nospline[bias_lowlow_nospline$Percentile==95, ]
+# compared to bias = -0.086 for trimmed first, -0.068 for trimmed after
+
+
+mse_lowlow_nospline[which(abs(mse_lowlow_nospline$MSE) == min(abs(mse_lowlow_nospline$MSE))),] 
+#97-100th percentile (MSE 0.129) for both trimmed first and after
+
+mse_lowlow_nospline[mse_lowlow_nospline$Percentile==95, ]
+# MSE = 0.133 for trimmed first, 
+# MSE = 0.133 for trimmed after
+
+coverage_lowlow_nospline[coverage_lowlow_nospline$Percentile==95, ]
+# 0.949 trimmed first,
+# 0.949 trimmed after
+
+coverage_lowlow_nospline[coverage_lowlow_nospline$Percentile==100, ]
+# 0.953
+
+lowlowPlots_nospline<- plotWeightTrimmingResults(biasmat = weighttrimresults_lowIPTW_lowIIW_nospline$biasmat,
+                                        varmat = weighttrimresults_lowIPTW_lowIIW_nospline$varmat,
+                                        msemat = weighttrimresults_lowIPTW_lowIIW_nospline$msemat,
+                                        coveragemat = weighttrimresults_lowIPTW_lowIIW_nospline$coveragemat)
+
+
+
+
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Moderate IPTW, low IIW
+
+#### n = 100 ###
+
+set.seed(342)
+n = 100
+beta1 = 0.5
+beta2 = 2
+beta3 = 1
+gamma1 = 0.5
+gamma2 = 0.3
+gamma3 = 0.6
+alpha0 = 0
+alpha1 = 3.5
+tau = 7
+N = 1000
+ncutpts = 2
+
+# weightrimresults_moderateIPTW_lowIIW_nospline <- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
+#                                            alpha0, alpha1, tau, usesplines = T, outcome = outcome,  ncutpts = 2)
+# saveRDS(weightrimresults_moderateIPTW_lowIIW_nospline, "weightrimresults_moderateIPTW_lowIIW_nospline.rds")
+weightrimresults_moderateIPTW_lowIIW_nospline <- readRDS("weightrimresults_moderateIPTW_lowIIW_nospline.rds")
+
+
+# view average weight distribution
+
+weightrimresults_moderateIPTW_lowIIW_nospline$othermat_iptw
+weightrimresults_moderateIPTW_lowIIW_nospline$othermat_iiw
+weightrimresults_moderateIPTW_lowIIW_nospline$othermat_fiptiw
+
+
+### determine minimum bias, var, mse, etc
+
+#bias closest to zero
+bias_modlow_nospline <- weightrimresults_moderateIPTW_lowIIW_nospline$biasmat
+mse_modlow_nospline <- weightrimresults_moderateIPTW_lowIIW_nospline$msemat
+coverage_modlow_nospline <- weightrimresults_moderateIPTW_lowIIW_nospline$coveragemat
+
+bias_modlow_nospline[which(abs(bias_modlow_nospline$Bias) == min(abs(bias_modlow_nospline$Bias))),] 
+# 99 percentile, trimmed after
+# bias = 0.098
+
+bias_modlow_nospline[bias_modlow_nospline$Percentile==95, ]
+# compared to bias =  for trimmed first,  for trimmed after
+# Trimmedfirst = 0.215
+# Trimmed after = 0.165
+
+mse_modlow_nospline[which(abs(mse_modlow_nospline$MSE) == min(abs(mse_modlow_nospline$MSE))),] 
+#87th percentile (MSE = 0.305) for trimmed after
+
+mse_modlow_nospline[mse_modlow_nospline$Percentile==95, ]
+# MSE = 0.325 for trimmed first, 
+# MSE = 0.329 for trimmed after
+
+coverage_modlow_nospline[coverage_modlow_nospline$Percentile==95, ]
+#  0.875 trimmed first,
+#  0.882 trimmed after
+
+coverage_modlow_nospline[coverage_modlow_nospline$Percentile==100, ]
+# 0.874
+
+modlowplots_nospline <- plotWeightTrimmingResults(biasmat = weightrimresults_moderateIPTW_lowIIW_nospline$biasmat,
+                                         varmat = weightrimresults_moderateIPTW_lowIIW_nospline$varmat,
+                                         msemat = weightrimresults_moderateIPTW_lowIIW_nospline$msemat,
+                                         coveragemat = weightrimresults_moderateIPTW_lowIIW_nospline$coveragemat)
+
+
+
+
+
+
+
+
+
+######## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~high IPTW, low IIW
+#### n = 100 ###
+
+set.seed(6984)
+n = 100
+beta1 = 0.5
+beta2 = 2
+beta3 = 1
+gamma1 = 0.5
+gamma2 = 0.3
+gamma3 = 0.6
+alpha0 = 0
+alpha1 = 5.5
+tau = 7
+N = 1000
+# 
+# weightrimresults_highIPTW_lowIIW_nospline <- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
+#                                           alpha0, alpha1, tau, usesplines = T, outcome = outcome, ncutpts = 2)
+# saveRDS(weightrimresults_highIPTW_lowIIW_nospline, "weightrimresults_highIPTW_lowIIW_nospline.rds")
+weightrimresults_highIPTW_lowIIW_nospline <- readRDS("weightrimresults_highIPTW_lowIIW_nospline.rds")
+
+weightrimresults_highIPTW_lowIIW_nospline$othermat_iptw
+weightrimresults_highIPTW_lowIIW_nospline$othermat_iiw
+weightrimresults_highIPTW_lowIIW_nospline$othermat_fiptiw
+
+
+
+### determine minimum bias, var, mse, etc
+
+#bias closest to zero
+bias_highlow_nospline <- weightrimresults_highIPTW_lowIIW_nospline$biasmat
+mse_highlow_nospline <- weightrimresults_highIPTW_lowIIW_nospline$msemat
+coverage_highlow_nospline <- weightrimresults_highIPTW_lowIIW_nospline$coveragemat
+
+bias_highlow_nospline[which(abs(bias_highlow_nospline$Bias) == min(abs(bias_highlow_nospline$Bias))),] 
+# 98th percentile, trimmed after
+# bias = 0.083
+
+
+bias_highlow_nospline[bias_highlow_nospline$Percentile==95, ]
+# compared to bias =  0.127 for trimmed first, 0.103 for trimmed after
+
+
+mse_highlow_nospline[which(abs(mse_highlow_nospline$MSE) == min(abs(mse_highlow_nospline$MSE))),] 
+#57-66th percentile (MSE = 0.428) for both trimmed after
+
+mse_highlow_nospline[mse_highlow_nospline$Percentile==95, ]
+# MSE =  0.500 for trimmed first, 
+# MSE =  for 0.524 trimmed after
+
+coverage_highlow_nospline[coverage_highlow_nospline$Percentile==95, ]
+# 0.869trimmed first,
+# 0.853 trimmed after
+
+coverage_highlow_nospline[coverage_highlow_nospline$Percentile==100, ]
+#0.799
+
+highlowplots_nospline <- plotWeightTrimmingResults(biasmat = weightrimresults_highIPTW_lowIIW_nospline$biasmat,
+                                          varmat = weightrimresults_highIPTW_lowIIW_nospline$varmat,
+                                          msemat = weightrimresults_highIPTW_lowIIW_nospline$msemat,
+                                          coveragemat = weightrimresults_highIPTW_lowIIW_nospline$coveragemat)
+
+
+
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~low IPTW and moderate IIW
+#### n = 100 ###
+
+set.seed(462)
+n = 100
+beta1 = 0.5
+beta2 = 2
+beta3 = 1
+gamma1 = 0.5
+gamma2 = 0.3
+gamma3 = -.75
+alpha0 = 0
+alpha1 = 0.5
+tau = 7
+N = 1000
+
+# weighttrimresults_lowIPTW_moderateIIW_nospline<- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
+#                                           alpha0, alpha1, tau, usesplines = T, outcome = outcome, ncutpts = 2)
+# saveRDS(weighttrimresults_lowIPTW_moderateIIW_nospline, "weighttrimresults_lowIPTW_moderateIIW_nospline.rds")
+weighttrimresults_lowIPTW_moderateIIW_nospline <- readRDS("weighttrimresults_lowIPTW_moderateIIW_nospline.rds")
+
+
+# view average weight distribution
+weighttrimresults_lowIPTW_moderateIIW_nospline$othermat_iptw
+weighttrimresults_lowIPTW_moderateIIW_nospline$othermat_iiw
+weighttrimresults_lowIPTW_moderateIIW_nospline$othermat_fiptiw
+
+
+
+
+### determine minimum bias, var, mse, etc
+
+#bias closest to zero
+bias_lowmod_nospline <- weighttrimresults_lowIPTW_moderateIIW_nospline$biasmat
+mse_lowmod_nospline <- weighttrimresults_lowIPTW_moderateIIW_nospline$msemat
+coverage_lowmod_nospline <- weighttrimresults_lowIPTW_moderateIIW_nospline$coveragemat
+
+bias_lowmod_nospline[which(abs(bias_lowmod_nospline$Bias) == min(abs(bias_lowmod_nospline$Bias))),] 
+# 100th percentile, trimmed first
+# bias = 0.075
+
+bias_lowmod_nospline[bias_lowmod_nospline$Percentile==95, ]
+# compared to bias = 0.141 for trimmed first, 0.141 for trimmed after
+
+
+mse_lowmod_nospline[which(abs(mse_lowmod_nospline$MSE) == min(abs(mse_lowmod_nospline$MSE))),] 
+#98th percentile (MSE 0.455) for both trimmed first and after
+
+mse_lowmod_nospline[mse_lowmod_nospline$Percentile==95, ]
+# MSE = 0.280 for trimmed first, 
+# MSE = 0.362 for trimmed after
+
+coverage_lowmod_nospline[coverage_lowmod_nospline$Percentile==95, ]
+# 0.908 trimmed first,
+# 0.866 trimmed after
+
+coverage_lowmod_nospline[coverage_lowmod_nospline$Percentile==100, ]
+# 0.925 trimmed first,
+
+
+lowmodplots_nospline <- plotWeightTrimmingResults(biasmat = weighttrimresults_lowIPTW_moderateIIW_nospline$biasmat,
+                                         varmat = weighttrimresults_lowIPTW_moderateIIW_nospline$varmat,
+                                         msemat = weighttrimresults_lowIPTW_moderateIIW_nospline$msemat,
+                                         coveragemat = weighttrimresults_lowIPTW_moderateIIW_nospline$coveragemat)
+
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ low IPTW and high IIW
+#### n = 100 ###
+
+set.seed(5321)
+n = 100
+beta1 = 0.5
+beta2 = 2
+beta3 = 1
+gamma1 = 0.5
+gamma2 = 0.3
+gamma3 = -1
+alpha0 = 0
+alpha1 = 0.5
+tau = 7
+N = 1000
+
+# weighttrimresults_lowIPTW_highIIW_nospline<- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
+#                                                                       alpha0, alpha1, tau,usesplines = T, outcome = outcome, ncutpts = 2)
+# saveRDS(weighttrimresults_lowIPTW_highIIW_nospline, "weighttrimresults_lowIPTW_highIIW_nospline.rds")
+weighttrimresults_lowIPTW_highIIW_nospline <- readRDS("weighttrimresults_lowIPTW_highIIW_nospline.rds")
+
+
+# view average weight distribution
+weighttrimresults_lowIPTW_highIIW_nospline$othermat_iptw
+weighttrimresults_lowIPTW_highIIW_nospline$othermat_iiw
+weighttrimresults_lowIPTW_highIIW_nospline$othermat_fiptiw
+
+
+
+
+### determine minimum bias, var, mse, etc
+
+#bias closest to zero
+bias_lowhigh_nospline <- weighttrimresults_lowIPTW_highIIW_nospline$biasmat
+mse_lowhigh_nospline <- weighttrimresults_lowIPTW_highIIW_nospline$msemat
+coverage_lowhigh_nospline <- weighttrimresults_lowIPTW_highIIW_nospline$coveragemat
+
+bias_lowhigh_nospline[which(abs(bias_lowhigh_nospline$Bias) == min(abs(bias_lowhigh_nospline$Bias))),] 
+# 100th percentile, trimmed first
+# bias = 0.095
+
+bias_lowhigh_nospline[bias_lowhigh_nospline$Percentile==95, ]
+# compared to bias = 0.233 for trimmed first, 0.401 for trimmed after
+
+
+mse_lowhigh_nospline[which(abs(mse_lowhigh_nospline$MSE) == min(abs(mse_lowhigh_nospline$MSE))),] 
+#96-98th percentile (MSE =0.385) for trimmed first
+
+mse_lowhigh_nospline[mse_lowhigh_nospline$Percentile==95, ]
+# MSE = 0.388 for trimmed first, 
+# MSE = 0.461 for trimmed after
+
+coverage_lowhigh_nospline[coverage_lowhigh_nospline$Percentile==95, ]
+#  0.884 trimmed first,
+# 0.835 trimmed after
+
+lowhighplots_nospline <- plotWeightTrimmingResults(biasmat = weighttrimresults_lowIPTW_highIIW_nospline$biasmat,
+                                          varmat = weighttrimresults_lowIPTW_highIIW_nospline$varmat,
+                                          msemat = weighttrimresults_lowIPTW_highIIW_nospline$msemat,
+                                          coveragemat = weighttrimresults_lowIPTW_highIIW_nospline$coveragemat)
+
+
+
+
+
+
+
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ moderate IPTW and moderate IIW
+#### n = 100 ###
+
+set.seed(984654)
+n = 100
+beta1 = 0.5
+beta2 = 2
+beta3 = 1
+gamma1 = 0.5
+gamma2 = 0.3
+gamma3 = -1
+alpha0 = 0
+alpha1 = 3.5
+tau = 7
+N = 1000
+# 
+# weighttrimresults_moderateIPTW_moderateIIW_nospline<- simulateResultsWeightTrimming(N, n, beta1, beta2, beta3, gamma1, gamma2, gamma3,
+#                                                                   alpha0, alpha1, tau, usesplines = T, outcome = outcome, ncutpts = 2)
+# saveRDS(weighttrimresults_moderateIPTW_moderateIIW_nospline, "weighttrimresults_moderateIPTW_moderateIIW_nospline.rds")
+weighttrimresults_moderateIPTW_moderateIIW_nospline <- readRDS("weighttrimresults_moderateIPTW_moderateIIW_nospline.rds")
+
+
+# view average weight distribution
+weighttrimresults_moderateIPTW_moderateIIW_nospline$othermat_iptw
+weighttrimresults_moderateIPTW_moderateIIW_nospline$othermat_iiw
+weighttrimresults_moderateIPTW_moderateIIW_nospline$othermat_fiptiw
+
+
+
+
+### determine minimum bias, var, mse, etc
+
+#bias closest to zero
+bias_modmod_nospline <- weighttrimresults_moderateIPTW_moderateIIW_nospline$biasmat
+mse_modmod_nospline <- weighttrimresults_moderateIPTW_moderateIIW_nospline$msemat
+coverage_modmod_nospline <- weighttrimresults_moderateIPTW_moderateIIW_nospline$coveragemat
+
+bias_modmod_nospline[which(abs(bias_modmod_nospline$Bias) == min(abs(bias_modmod_nospline$Bias))),] 
+# 99th percentile, trimmed first
+# bias = 
+
+bias_modmod_nospline[bias_modmod_nospline$Percentile==95, ]
+# compared to bias =  for trimmed first,  for trimmed after
+
+
+mse_modmod_nospline[which(abs(mse_modmod_nospline$MSE) == min(abs(mse_modmod_nospline$MSE))),] 
+#98th percentile (MSE ) for both trimmed first and after
+
+mse_modmod_nospline[mse_modmod_nospline$Percentile==95, ]
+# MSE =  for trimmed first, 
+# MSE =  for trimmed after
+
+coverage_modmod_nospline[coverage_modmod_nospline$Percentile==95, ]
+#  trimmed first,
+#  trimmed after
+
+modmodplots_nospline <- plotWeightTrimmingResults(biasmat = weighttrimresults_moderateIPTW_moderateIIW_nospline$biasmat,
+                                         varmat = weighttrimresults_moderateIPTW_moderateIIW_nospline$varmat,
+                                         msemat = weighttrimresults_moderateIPTW_moderateIIW_nospline$msemat,
+                                         coveragemat = weighttrimresults_moderateIPTW_moderateIIW_nospline$coveragemat)
+
+
+
+
+
+
 
 

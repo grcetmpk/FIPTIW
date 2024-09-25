@@ -51,12 +51,12 @@ gamma3vec = c(0, 0.6)
 alpha0 = -1
 alpha1vec = c(0, 1)
 tau = 7
-N = 500
+N = 50
 ncutpts = 2
 
 resultsFIPTIW_n100 <- simulateALLFIPTIW(N, n, beta1, beta2, beta3, gamma1, gamma2vec, gamma3vec,
                                                         alpha0, alpha1vec, tau, outputfulldatalist = FALSE, ncutpts = 2,
-                                        inParallel = T, nclusters = nclusters)
+                                        inParallel = F,  outcome = "continuous")
 saveRDS(resultsFIPTIW_n100, "resultsFIPTIW_n100.rds")
 
 kable(resultsFIPTIW_n100$resultsmat, booktabs = T, digits = 3,format = "latex") %>%
@@ -303,5 +303,44 @@ coveragemat <- results_censoring_n500$resultsmat[, c(2,3,7,8,12,13,17,18,22,23, 
 kable(coveragemat, booktabs = T, 
       digits = 3,format = "latex") %>%
   add_header_above(c(" " = 2, "Unweighted" = 2, "IIW" = 2, "IPTW" = 2, "FIPTIW" = 2, "FIPTICW" = 2))
+
+
+
+
+######################3 BINARY RESULTS
+
+source("FIPTIW_timevarW_functions.R")
+
+# parallelization stuff
+ncores <- detectCores() - 3
+nclusters <- makeCluster(ncores)
+
+require(knitr)
+require(kableExtra)
+require(ggplot2)
+require(ggpubr)
+
+
+#~~~~~~~~~~ FIPTIW simulation, assumptions satisfied (not shown in paper).
+
+#### n = 100 ###
+
+set.seed(2345)
+n = 100
+beta1 = 0.5
+beta2 = 0.5 
+beta3 = 1
+gamma1 = 0.5
+gamma2vec = c(0)
+gamma3vec = c(0)
+alpha0 = -1
+alpha1vec = c(0)
+tau = 7
+N = 100
+ncutpts = 2
+
+resultsFIPTIW_n100_binary <- simulateALLFIPTIW(N, n, beta1, beta2, beta3, gamma1, gamma2vec, gamma3vec,
+                                        alpha0, alpha1vec, tau, outputfulldatalist = FALSE, ncutpts = 2,
+                                        inParallel = F,  outcome = "binary")
 
 
