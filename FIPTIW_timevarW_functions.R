@@ -452,7 +452,7 @@ simulateOneFIPTIW <- function(n, beta1, beta2, beta3, gamma1, gamma2, gamma3, al
   #### NAIVE ESTIMATION (beta1 and se(beta1))
  
   if(usesplines == T){
-    naivemod <- summary(geeglm(y ~ D + bs(simdata_obs$time,degree=3,knots=c(terti)), data = simdata_obs, family = family, id = id))
+    naivemod <- summary(geeglm(y ~ D + bs(simdata_obs$time9,degree=3,knots=c(terti)), data = simdata_obs, family = family, id = id))
     beta1_naive <- naivemod$coef[2,1]
     se_beta1_naive <- naivemod$coef[2,2] #robust SE
     
@@ -1214,7 +1214,7 @@ makeBoxPlotsATE <- function(atemat, eta2vec){
   
   atemat <- gather(atemat, "Method", "ATE", -c(eta1, eta2, eta3))
   atemat$Method <- factor(atemat$Method, levels = c("Naive", "IIW", "IPTW", "FIPTIW", "FIPTICW"))
-  
+  # 
   ymin <- min(atemat$ATE)
   ymax <- max(atemat$ATE)
   # ymin <- -2
@@ -2128,7 +2128,7 @@ plotWeightTrimmingResults <- function(results){
     theme(legend.title=element_blank())+
     xlab("Threshold (Percentile)") +
     ylab("Bias")+
-    ylim(0.0, 0.4) +
+    ylim(-0.2, 0.3) +
     theme(axis.text=element_text(size=10),
           axis.title=element_text(size=10))
 
@@ -2152,7 +2152,7 @@ plotWeightTrimmingResults <- function(results){
     geom_point(size = 0.8)+ 
     theme(legend.title=element_blank()) +
     xlab("Threshold (Percentile)")+
-    ylim(0.1, 0.8)+
+    ylim(0, 0.2)+
     theme(axis.text=element_text(size=10),
           axis.title=element_text(size=10))
   
