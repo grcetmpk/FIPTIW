@@ -135,11 +135,11 @@ eta3vec = c(0, 0.4, 0.6)
 
 set.seed(23487)
 # results_censoring_n100_binary <- simulateALLFIPTICW_CENS(N, n = 100, beta1, beta2, beta3, gamma1, gamma2, gamma3,
-#                                    alpha0, alpha1, tau, outcome = "binary",
-#                                    censinform = T, eta1vec, eta2vec, eta3vec,
-#                                    usesplines = T, ncutpts =  2, outputfulldatalist = T,
-#                                    inParallel = T, nclusters = nclusters)
-# 
+                                   # alpha0, alpha1, tau, outcome = "binary",
+                                   # censinform = T, eta1vec, eta2vec, eta3vec,
+                                   # usesplines = T, ncutpts =  2, outputfulldatalist = T,
+                                   # inParallel = T, nclusters = nclusters)
+
 # 
 # saveRDS(results_censoring_n100_binary, "results_censoring_n100_binary.rds")
 results_censoring_n100_binary <- readRDS("results_censoring_n100_binary.rds")
@@ -160,14 +160,14 @@ kable(coveragemat_n100_binary, booktabs = T,
 ### binary n = 50, with splines
 
 set.seed(7354)
-# results_censoring_n50_binary <- simulateALLFIPTICW_CENS(N, n = 50, beta1, beta2, beta3, gamma1, gamma2, gamma3,
-#                                                   alpha0, alpha1, tau, outcome = "binary",
-#                                                   censinform = T, eta1vec, eta2vec, eta3vec,
-#                                                   usesplines = T, ncutpts =  2, outputfulldatalist = T,
-#                                                   inParallel = T, nclusters = nclusters)
-# 
-# 
-# saveRDS(results_censoring_n50_binary, "results_censoring_n50_binary.rds")
+results_censoring_n50_binary <- simulateALLFIPTICW_CENS(N, n = 50, beta1, beta2, beta3, gamma1, gamma2, gamma3,
+                                                  alpha0, alpha1, tau, outcome = "binary",
+                                                  censinform = T, eta1vec, eta2vec, eta3vec,
+                                                  usesplines = T, ncutpts =  2, outputfulldatalist = T,
+                                                  inParallel = T, nclusters = nclusters)
+
+
+saveRDS(results_censoring_n50_binary, "results_censoring_n50_binary.rds")
 results_censoring_n50_binary <- readRDS("results_censoring_n50_binary.rds")
 
 plot_censoring_n50_binary <- makeBoxPlotsATE(results_censoring_n50_binary$fulldatalist, eta2vec)
