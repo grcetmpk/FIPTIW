@@ -2112,7 +2112,7 @@ simulateResultsWeightTrimming <- function(N, n, beta1, beta2, beta3, gamma1, gam
 }
 
 
-plotWeightTrimmingResults <- function(results){
+plotWeightTrimmingResults <- function(results, usesplines){
   
   biasmat <- results$biasmat
   varmat <- results$varmat
@@ -2146,15 +2146,27 @@ plotWeightTrimmingResults <- function(results){
   
   ### MSE plots
   
+  if(usesplines == T){
+    p3 <- ggplot(msemat, aes(x = Percentile, y = MSE, color = Method, shape = Method)) + 
+      geom_line() + 
+      geom_point(size = 0.8)+ 
+      theme(legend.title=element_blank()) +
+      xlab("Threshold (Percentile)")+
+      ylim(0, 0.8)+
+      theme(axis.text=element_text(size=10),
+            axis.title=element_text(size=10))
+    
+  }else{
+    p3 <- ggplot(msemat, aes(x = Percentile, y = MSE, color = Method, shape = Method)) + 
+      geom_line() + 
+      geom_point(size = 0.8)+ 
+      theme(legend.title=element_blank()) +
+      xlab("Threshold (Percentile)")+
+      ylim(0, 0.2)+
+      theme(axis.text=element_text(size=10),
+            axis.title=element_text(size=10))
+  }
   
-  p3 <- ggplot(msemat, aes(x = Percentile, y = MSE, color = Method, shape = Method)) + 
-    geom_line() + 
-    geom_point(size = 0.8)+ 
-    theme(legend.title=element_blank()) +
-    xlab("Threshold (Percentile)")+
-    ylim(0, 0.2)+
-    theme(axis.text=element_text(size=10),
-          axis.title=element_text(size=10))
   
   p4 <- ggplot(coveragemat, aes(x = Percentile, y = Coverage, color = Method, shape = Method)) + 
     geom_line() + 

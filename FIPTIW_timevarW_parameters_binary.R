@@ -362,7 +362,7 @@ set.seed(13546)
 weighttrimresults_lowIPTW_lowIIW <- readRDS("weighttrimresults_lowIPTW_lowIIW.rds")
 compareMinimums(weighttrimresults_lowIPTW_lowIIW)
 
-plots_lowIPTW_lowIIW <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_lowIIW)
+plots_lowIPTW_lowIIW <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_lowIIW, usesplines = T)
 
 
 ### MODERATE-LOW
@@ -381,7 +381,7 @@ set.seed(243)
 weighttrimresults_modIPTW_lowIIW <- readRDS("weighttrimresults_modIPTW_lowIIW.rds")
 compareMinimums(weighttrimresults_modIPTW_lowIIW)
 
-plots_modIPTW_lowIIW <- plotWeightTrimmingResults(weighttrimresults_modIPTW_lowIIW)
+plots_modIPTW_lowIIW <- plotWeightTrimmingResults(weighttrimresults_modIPTW_lowIIW, usesplines = T)
 
 
 
@@ -400,7 +400,7 @@ weighttrimresults_highIPTW_lowIIW <- readRDS("weighttrimresults_highIPTW_lowIIW.
 compareMinimums(weighttrimresults_highIPTW_lowIIW)
 
 
-plots_highIPTW_lowIIW <- plotWeightTrimmingResults(weighttrimresults_highIPTW_lowIIW)
+plots_highIPTW_lowIIW <- plotWeightTrimmingResults(weighttrimresults_highIPTW_lowIIW, usesplines = T)
 
 
 ### LOW-MOD
@@ -418,7 +418,7 @@ set.seed(3874)
 weighttrimresults_lowIPTW_modIIW <- readRDS("weighttrimresults_lowIPTW_modIIW.rds")
 compareMinimums(weighttrimresults_lowIPTW_modIIW)
 
-plots_lowIPTW_modIIW <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_modIIW)
+plots_lowIPTW_modIIW <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_modIIW, usesplines = T)
 
 
 ### LoW-HIGH
@@ -436,7 +436,7 @@ set.seed(23487)
 weighttrimresults_lowIPTW_highIIW <- readRDS("weighttrimresults_lowIPTW_highIIW.rds")
 compareMinimums(weighttrimresults_lowIPTW_highIIW)
 
-plots_lowIPTW_highIIW <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_highIIW)
+plots_lowIPTW_highIIW <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_highIIW, usesplines = T)
 
 
 
@@ -456,11 +456,11 @@ set.seed(99)
 weighttrimresults_modIPTW_modIIW <- readRDS("weighttrimresults_modIPTW_modIIW.rds")
 compareMinimums(weighttrimresults_modIPTW_modIIW)
 
-plots_modIPTWmodIIW <- plotWeightTrimmingResults(weighttrimresults_modIPTW_modIIW)
+plots_modIPTWmodIIW <- plotWeightTrimmingResults(weighttrimresults_modIPTW_modIIW, usesplines = T)
 
 
 
-allplots_binary <- wrap_elements(grid::textGrob('Low Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_highIIW$biasplot + plots_lowIPTW_highIIW$mseplot  + plots_lowIPTW_highIIW$coverageplot +
+allplots_binary <- wrap_elements(grid::textGrob('Low Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_lowIIW$biasplot + plots_lowIPTW_lowIIW$mseplot  + plots_lowIPTW_lowIIW$coverageplot +
   wrap_elements(grid::textGrob('Moderate Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_modIPTW_lowIIW$biasplot + plots_modIPTW_lowIIW$mseplot + plots_modIPTW_lowIIW$coverageplot +
   wrap_elements(grid::textGrob('High Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_highIPTW_lowIIW$biasplot + plots_highIPTW_lowIIW$mseplot + plots_highIPTW_lowIIW$coverageplot +
   wrap_elements(grid::textGrob('Low Trt \n Moderate Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_modIIW$biasplot + plots_lowIPTW_modIIW$mseplot + plots_lowIPTW_modIIW$coverageplot +
@@ -504,7 +504,7 @@ set.seed(13546)
 weighttrimresults_lowIPTW_lowIIW_nospline <- readRDS("weighttrimresults_lowIPTW_lowIIW_nospline.rds")
 compareMinimums(weighttrimresults_lowIPTW_lowIIW_nospline)
 
-plots_lowIPTW_lowIIW_nospline <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_lowIIW_nospline)
+plots_lowIPTW_lowIIW_nospline <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_lowIIW_nospline, usesplines = F)
 
 
 ### MODERATE-LOW
@@ -523,7 +523,7 @@ set.seed(243)
 weighttrimresults_modIPTW_lowIIW_nospline <- readRDS("weighttrimresults_modIPTW_lowIIW_nospline.rds")
 compareMinimums(weighttrimresults_modIPTW_lowIIW_nospline)
 
-plots_modIPTW_lowIIW_nospline <- plotWeightTrimmingResults(weighttrimresults_modIPTW_lowIIW_nospline)
+plots_modIPTW_lowIIW_nospline <- plotWeightTrimmingResults(weighttrimresults_modIPTW_lowIIW_nospline, usesplines = F)
 
 
 
@@ -542,7 +542,7 @@ weighttrimresults_highIPTW_lowIIW_nospline <- readRDS("weighttrimresults_highIPT
 compareMinimums(weighttrimresults_highIPTW_lowIIW_nospline)
 
 
-plots_highIPTW_lowIIW_nospline <- plotWeightTrimmingResults(weighttrimresults_highIPTW_lowIIW_nospline)
+plots_highIPTW_lowIIW_nospline <- plotWeightTrimmingResults(weighttrimresults_highIPTW_lowIIW_nospline, usesplines = F)
 
 
 ### LOW-MOD
@@ -560,7 +560,7 @@ set.seed(3874)
 weighttrimresults_lowIPTW_modIIW_nospline <- readRDS("weighttrimresults_lowIPTW_modIIW_nospline.rds")
 compareMinimums(weighttrimresults_lowIPTW_modIIW_nospline)
 
-plots_lowIPTW_modIIW_nospline <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_modIIW_nospline)
+plots_lowIPTW_modIIW_nospline <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_modIIW_nospline, usesplines = F)
 
 
 ### LoW-HIGH
@@ -578,7 +578,7 @@ set.seed(23487)
 weighttrimresults_lowIPTW_highIIW_nospline <- readRDS("weighttrimresults_lowIPTW_highIIW_nospline.rds")
 compareMinimums(weighttrimresults_lowIPTW_highIIW_nospline)
 
-plots_lowIPTW_highIIW_nospline <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_highIIW_nospline)
+plots_lowIPTW_highIIW_nospline <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_highIIW_nospline, usesplines = F)
 
 
 
@@ -598,10 +598,10 @@ set.seed(99)
 weighttrimresults_modIPTW_modIIW_nospline <- readRDS("weighttrimresults_modIPTW_modIIW_nospline.rds")
 compareMinimums(weighttrimresults_modIPTW_modIIW_nospline)
 
-plots_modIPTWmodIIW_nospline <- plotWeightTrimmingResults(weighttrimresults_modIPTW_modIIW_nospline)
+plots_modIPTWmodIIW_nospline <- plotWeightTrimmingResults(weighttrimresults_modIPTW_modIIW_nospline, usesplines = F)
 
 
-allplots_binary_nospline <- wrap_elements(grid::textGrob('Low Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_highIIW_nospline$biasplot + plots_lowIPTW_highIIW_nospline$mseplot  + plots_lowIPTW_highIIW_nospline$coverageplot +
+allplots_binary_nospline <- wrap_elements(grid::textGrob('Low Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_lowIIW_nospline$biasplot + plots_lowIPTW_lowIIW_nospline$mseplot  + plots_lowIPTW_lowIIW_nospline$coverageplot +
   wrap_elements(grid::textGrob('Moderate Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_modIPTW_lowIIW_nospline$biasplot + plots_modIPTW_lowIIW_nospline$mseplot + plots_modIPTW_lowIIW_nospline$coverageplot +
   wrap_elements(grid::textGrob('High Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_highIPTW_lowIIW_nospline$biasplot + plots_highIPTW_lowIIW_nospline$mseplot + plots_highIPTW_lowIIW_nospline$coverageplot +
   wrap_elements(grid::textGrob('Low Trt \n Moderate Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_modIIW_nospline$biasplot + plots_lowIPTW_modIIW_nospline$mseplot + plots_lowIPTW_modIIW_nospline$coverageplot +
@@ -643,7 +643,7 @@ set.seed(235)
 weighttrimresults_lowIPTW_lowIIW_continuous_continuous <- readRDS("weighttrimresults_lowIPTW_lowIIW_continuous_continuous.rds")
 compareMinimums(weighttrimresults_lowIPTW_lowIIW_continuous_continuous)
 
-plots_lowIPTW_lowIIW_continuous_continuous <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_lowIIW_continuous_continuous)
+plots_lowIPTW_lowIIW_continuous <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_lowIIW_continuous_continuous, usesplines = T)
 
 
 ### MODERATE-LOW
@@ -662,7 +662,7 @@ set.seed(764)
 weighttrimresults_modIPTW_lowIIW_continuous <- readRDS("weighttrimresults_modIPTW_lowIIW_continuous.rds")
 compareMinimums(weighttrimresults_modIPTW_lowIIW_continuous)
 
-plots_modIPTW_lowIIW_continuous <- plotWeightTrimmingResults(weighttrimresults_modIPTW_lowIIW_continuous)
+plots_modIPTW_lowIIW_continuous <- plotWeightTrimmingResults(weighttrimresults_modIPTW_lowIIW_continuous, usesplines = T)
 
 
 
@@ -681,7 +681,7 @@ weighttrimresults_highIPTW_lowIIW_continuous <- readRDS("weighttrimresults_highI
 compareMinimums(weighttrimresults_highIPTW_lowIIW_continuous)
 
 
-plots_highIPTW_lowIIW_continuous <- plotWeightTrimmingResults(weighttrimresults_highIPTW_lowIIW_continuous)
+plots_highIPTW_lowIIW_continuous <- plotWeightTrimmingResults(weighttrimresults_highIPTW_lowIIW_continuous, usesplines = T)
 
 
 ### LOW-MOD
@@ -699,7 +699,7 @@ set.seed(3249)
 weighttrimresults_lowIPTW_modIIW_continuous <- readRDS("weighttrimresults_lowIPTW_modIIW_continuous.rds")
 compareMinimums(weighttrimresults_lowIPTW_modIIW_continuous)
 
-plots_lowIPTW_modIIW_continuous <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_modIIW_continuous)
+plots_lowIPTW_modIIW_continuous <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_modIIW_continuous, usesplines = T)
 
 
 ### LoW-HIGH
@@ -717,7 +717,7 @@ set.seed(900)
 weighttrimresults_lowIPTW_highIIW_continuous <- readRDS("weighttrimresults_lowIPTW_highIIW_continuous.rds")
 compareMinimums(weighttrimresults_lowIPTW_highIIW_continuous)
 
-plots_lowIPTW_highIIW_continuous <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_highIIW_continuous)
+plots_lowIPTW_highIIW_continuous <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_highIIW_continuous,  usesplines = T)
 
 
 
@@ -737,11 +737,11 @@ set.seed(188)
 weighttrimresults_modIPTW_modIIW_continuous <- readRDS("weighttrimresults_modIPTW_modIIW_continuous.rds")
 compareMinimums(weighttrimresults_modIPTW_modIIW_continuous)
 
-plots_modIPTWmodIIW_continuous <- plotWeightTrimmingResults(weighttrimresults_modIPTW_modIIW_continuous)
+plots_modIPTWmodIIW_continuous <- plotWeightTrimmingResults(weighttrimresults_modIPTW_modIIW_continuous, usesplines = T)
 
 
 
-allplots_continuous <- wrap_elements(grid::textGrob('Low Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_highIIW_continuous$biasplot + plots_lowIPTW_highIIW_continuous$mseplot  + plots_lowIPTW_highIIW_continuous$coverageplot +
+allplots_continuous <- wrap_elements(grid::textGrob('Low Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_lowIIW_continuous$biasplot + plots_lowIPTW_lowIIW_continuous$mseplot  + plots_lowIPTW_lowIIW_continuous$coverageplot +
   wrap_elements(grid::textGrob('Moderate Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_modIPTW_lowIIW_continuous$biasplot + plots_modIPTW_lowIIW_continuous$mseplot + plots_modIPTW_lowIIW_continuous$coverageplot +
   wrap_elements(grid::textGrob('High Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_highIPTW_lowIIW_continuous$biasplot + plots_highIPTW_lowIIW_continuous$mseplot + plots_highIPTW_lowIIW_continuous$coverageplot +
   wrap_elements(grid::textGrob('Low Trt \n Moderate Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_modIIW_continuous$biasplot + plots_lowIPTW_modIIW_continuous$mseplot + plots_lowIPTW_modIIW_continuous$coverageplot +
@@ -781,7 +781,8 @@ set.seed(235)
 weighttrimresults_lowIPTW_lowIIW_continuous_nospline <- readRDS("weighttrimresults_lowIPTW_lowIIW_continuous_nospline.rds")
 compareMinimums(weighttrimresults_lowIPTW_lowIIW_continuous_nospline)
 
-plots_lowIPTW_lowIIW_continuous_nospline <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_lowIIW_continuous_nospline)
+plots_lowIPTW_lowIIW_continuous_nospline <- 
+  plotWeightTrimmingResults(weighttrimresults_lowIPTW_lowIIW_continuous_nospline, usesplines = F)
 
 
 ### MODERATE-LOW
@@ -800,7 +801,8 @@ set.seed(764)
 weighttrimresults_modIPTW_lowIIW_continuous_nospline <- readRDS("weighttrimresults_modIPTW_lowIIW_continuous_nospline.rds")
 compareMinimums(weighttrimresults_modIPTW_lowIIW_continuous_nospline)
 
-plots_modIPTW_lowIIW_continuous_nospline <- plotWeightTrimmingResults(weighttrimresults_modIPTW_lowIIW_continuous_nospline)
+plots_modIPTW_lowIIW_continuous_nospline <- 
+  plotWeightTrimmingResults(weighttrimresults_modIPTW_lowIIW_continuous_nospline, usesplines = F)
 
 
 
@@ -819,7 +821,8 @@ weighttrimresults_highIPTW_lowIIW_continuous_nospline <- readRDS("weighttrimresu
 compareMinimums(weighttrimresults_highIPTW_lowIIW_continuous_nospline)
 
 
-plots_highIPTW_lowIIW_continuous_nospline <- plotWeightTrimmingResults(weighttrimresults_highIPTW_lowIIW_continuous_nospline)
+plots_highIPTW_lowIIW_continuous_nospline <- 
+  plotWeightTrimmingResults(weighttrimresults_highIPTW_lowIIW_continuous_nospline, usesplines = F)
 
 
 ### LOW-MOD
@@ -837,7 +840,8 @@ set.seed(3249)
 weighttrimresults_lowIPTW_modIIW_continuous_nospline <- readRDS("weighttrimresults_lowIPTW_modIIW_continuous_nospline.rds")
 compareMinimums(weighttrimresults_lowIPTW_modIIW_continuous_nospline)
 
-plots_lowIPTW_modIIW_continuous_nospline <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_modIIW_continuous_nospline)
+plots_lowIPTW_modIIW_continuous_nospline <- 
+  plotWeightTrimmingResults(weighttrimresults_lowIPTW_modIIW_continuous_nospline, usesplines = F)
 
 
 ### LoW-HIGH
@@ -855,7 +859,8 @@ set.seed(900)
 weighttrimresults_lowIPTW_highIIW_continuous_nospline <- readRDS("weighttrimresults_lowIPTW_highIIW_continuous_nospline.rds")
 compareMinimums(weighttrimresults_lowIPTW_highIIW_continuous_nospline)
 
-plots_lowIPTW_highIIW_continuous_nospline <- plotWeightTrimmingResults(weighttrimresults_lowIPTW_highIIW_continuous_nospline)
+plots_lowIPTW_highIIW_continuous_nospline <- 
+  plotWeightTrimmingResults(weighttrimresults_lowIPTW_highIIW_continuous_nospline, usesplines = F)
 
 
 
@@ -875,10 +880,11 @@ set.seed(188)
 weighttrimresults_modIPTW_modIIW_continuous_nospline <- readRDS("weighttrimresults_modIPTW_modIIW_continuous_nospline.rds")
 compareMinimums(weighttrimresults_modIPTW_modIIW_continuous_nospline)
 
-plots_modIPTWmodIIW_continuous_nospline <- plotWeightTrimmingResults(weighttrimresults_modIPTW_modIIW_continuous_nospline)
+plots_modIPTWmodIIW_continuous_nospline <- 
+  plotWeightTrimmingResults(weighttrimresults_modIPTW_modIIW_continuous_nospline, usesplines = F)
 
 
-allplots_continuous_nospline <- wrap_elements(grid::textGrob('Low Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_highIIW_continuous_nospline$biasplot + plots_lowIPTW_highIIW_continuous_nospline$mseplot  + plots_lowIPTW_highIIW_continuous_nospline$coverageplot +
+allplots_continuous_nospline <- wrap_elements(grid::textGrob('Low Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_lowIIW_continuous_nospline$biasplot + plots_lowIPTW_lowIIW_continuous_nospline$mseplot  + plots_lowIPTW_lowIIW_continuous_nospline$coverageplot +
   wrap_elements(grid::textGrob('Moderate Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_modIPTW_lowIIW_continuous_nospline$biasplot + plots_modIPTW_lowIIW_continuous_nospline$mseplot + plots_modIPTW_lowIIW_continuous_nospline$coverageplot +
   wrap_elements(grid::textGrob('High Trt \n Low Obs', gp = gpar( fontsize = 10))) + plots_highIPTW_lowIIW_continuous_nospline$biasplot + plots_highIPTW_lowIIW_continuous_nospline$mseplot + plots_highIPTW_lowIIW_continuous_nospline$coverageplot +
   wrap_elements(grid::textGrob('Low Trt \n Moderate Obs', gp = gpar( fontsize = 10))) + plots_lowIPTW_modIIW_continuous_nospline$biasplot + plots_lowIPTW_modIIW_continuous_nospline$mseplot + plots_lowIPTW_modIIW_continuous_nospline$coverageplot +
